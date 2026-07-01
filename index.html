@@ -1,18 +1,24 @@
-<!-- ... existing code ... -->
+<!DOCTYPE html>
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Dorf-Rallye Thalau</title>
     
+    <!-- PWA & Apple Touch Icon -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Luftbild_Thalau.JPG/1920px-Luftbild_Thalau.JPG">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
-            darkMode: 'class', // Darkmode aktiviert
+            darkMode: 'class',
             theme: { extend: { colors: { iosBlue: '#0A84FF', iosBg: '#000000', darkCard: '#1C1C1E' } } }
         }
     </script>
 
-    <!-- Leaflet Karte für den Admin-Bereich hinzufügen -->
+    <!-- Leaflet Karte -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -21,10 +27,11 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        body { background-color: #000000; color: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: #000000; color: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
         ::-webkit-scrollbar { width: 0px; background: transparent; }
         .timeline-line { position: absolute; left: 50%; transform: translateX(-50%); width: 4px; background: #333; top: 0; bottom: 0; z-index: 0; }
         .leaflet-container { z-index: 1 !important; }
+        .text-shadow { text-shadow: 0px 2px 4px rgba(0,0,0,0.8); }
     </style>
 </head>
 <body>
@@ -33,7 +40,7 @@
     <script type="text/babel" data-type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBpsE5x-nKFHk8fn_v85_1qseZaOXzGil0",
@@ -50,44 +57,79 @@
         const db = getFirestore(app);
 
         // Icons
-        const IconMapPin = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>;
         const IconLock = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>;
-        const IconUnlock = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>;
-        const IconTrash = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>;
-        const IconPlay = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>;
         const IconCheck = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>;
-        // NEUE ICONS FÜR DIE ROUTEN-INFOS
+        const IconTrash = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>;
+        const IconEdit = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>;
+        const IconPlay = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>;
         const IconClock = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>;
         const IconRuler = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.3 15.3l-13.4 13.4a2 2 0 0 1-2.8 0l-2.8-2.8a2 2 0 0 1 0-2.8l13.4-13.4a2 2 0 0 1 2.8 0l2.8 2.8a2 2 0 0 1 0 2.8z"></path><path d="M14.5 5.5l4 4"></path><path d="M11.5 8.5l4 4"></path><path d="M8.5 11.5l4 4"></path><path d="M5.5 14.5l4 4"></path></svg>;
         const IconCoffee = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>;
         const IconChevron = ({ open }) => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9"></polyline></svg>;
+        const IconChevronLeft = () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>;
+        const IconShare = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mb-1 mx-1"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>;
+        const IconX = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
+
+        // PWA Install Prompt Banner
+        const InstallPrompt = () => {
+            const [show, setShow] = React.useState(false);
+            React.useEffect(() => {
+                const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+                const dismissed = localStorage.getItem('pwaPromptDismissed');
+                if (!isStandalone && !dismissed && window.innerWidth < 768) {
+                    setTimeout(() => setShow(true), 3000); // Zeige nach 3 Sekunden
+                }
+            }, []);
+
+            if (!show) return null;
+            return (
+                <div className="fixed bottom-4 left-4 right-4 bg-iosBlue/95 backdrop-blur-xl text-white p-4 rounded-2xl shadow-2xl z-[100] flex justify-between items-center animate-bounce">
+                    <div className="text-sm">
+                        <strong className="block mb-1 text-base">Als App installieren</strong>
+                        <span className="opacity-90">Tippe unten auf Teilen <IconShare /> und "Zum Home-Bildschirm", um die Rallye als echte App zu nutzen.</span>
+                    </div>
+                    <button onClick={() => { setShow(false); localStorage.setItem('pwaPromptDismissed', 'true'); }} className="p-2 bg-black/20 rounded-full ml-3 flex-shrink-0"><IconX /></button>
+                </div>
+            );
+        };
 
         function App() {
             const [adminUser, setAdminUser] = React.useState(null);
-            const [view, setView] = React.useState('loading'); 
+            // Nutze sessionStorage, um den Status nach einem Reload/Swipe-Back zu behalten
+            const [view, setView] = React.useState(sessionStorage.getItem('currentView') || 'loading'); 
+            const [activeTourId, setActiveTourId] = React.useState(sessionStorage.getItem('activeTourId') || null);
+            
             const [tours, setTours] = React.useState([]);
             const [allStations, setAllStations] = React.useState([]);
-            const [activeTourId, setActiveTourId] = React.useState(null); // Für Player & Admin
             const [toast, setToast] = React.useState(null);
 
-            // 1. Auth Listener
+            // Safe State Update Helper
+            const changeView = (newView, tourId = null) => {
+                setView(newView);
+                sessionStorage.setItem('currentView', newView);
+                if (tourId !== undefined) {
+                    setActiveTourId(tourId);
+                    if (tourId) sessionStorage.setItem('activeTourId', tourId);
+                    else sessionStorage.removeItem('activeTourId');
+                }
+            };
+
             React.useEffect(() => {
                 const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
                     setAdminUser(currentUser);
-                    checkDevice(); 
+                    // Nur View anpassen, wenn wir im Initial-Load sind
+                    if (view === 'loading') {
+                        if (window.innerWidth > 768) changeView('desktop');
+                        else changeView('player_tours');
+                    }
                 });
-                const checkDevice = () => { setView(window.innerWidth > 768 ? 'desktop' : 'player_tours'); };
-                window.addEventListener('resize', checkDevice);
-                return () => { unsubscribe(); window.removeEventListener('resize', checkDevice); };
-            }, []);
+                return () => unsubscribe();
+            }, [view]);
 
-            // 2. Touren & Stationen aus Firebase laden
             React.useEffect(() => {
                 const unsubTours = onSnapshot(collection(db, 'tours'), (snap) => setTours(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
                 const unsubStations = onSnapshot(collection(db, 'stations'), (snap) => {
-                    // Sortiere Stationen nach Erstellungsdatum (Reihenfolge)
-                    const st = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => a.order - b.order);
-                    setAllStations(st);
+                    setAllStations(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => a.order - b.order));
                 });
                 return () => { unsubTours(); unsubStations(); };
             }, []);
@@ -103,7 +145,7 @@
                             <h1 className="text-3xl font-bold mb-4 text-white">Dorfrallye Manager</h1>
                             <p className="text-gray-400 mb-8">Scanne den QR-Code mit dem Handy, um die Tour zu starten.</p>
                             <div className="flex justify-center mb-8"><img src={qrUrl} alt="QR Code" className="rounded-xl shadow-md border-4 border-white" /></div>
-                            <button onClick={() => setView('login')} className="w-full bg-iosBlue text-white font-semibold py-3 px-4 rounded-xl">Admin Login</button>
+                            <button onClick={() => changeView('login')} className="w-full bg-iosBlue text-white font-semibold py-3 px-4 rounded-xl">Admin Login</button>
                         </div>
                     </div>
                 );
@@ -114,11 +156,15 @@
                 const [email, setEmail] = React.useState('');
                 const [password, setPassword] = React.useState('');
                 const [error, setError] = React.useState('');
-                if (adminUser) { setView('admin_tours'); return null; }
+                
+                if (adminUser) { 
+                    setTimeout(() => changeView('admin_tours'), 0); 
+                    return null; 
+                }
 
                 const handleLogin = async (e) => {
                     e.preventDefault();
-                    try { await signInWithEmailAndPassword(auth, email, password); showToast("Eingeloggt!"); setView('admin_tours'); }
+                    try { await signInWithEmailAndPassword(auth, email, password); showToast("Eingeloggt!"); changeView('admin_tours'); }
                     catch (err) { setError("Login fehlgeschlagen."); }
                 };
                 return (
@@ -127,11 +173,11 @@
                             <h2 className="text-2xl font-bold mb-6 text-center">Admin Login</h2>
                             {error && <p className="bg-red-900/50 text-red-400 p-3 rounded-xl mb-4 text-sm border border-red-900">{error}</p>}
                             <form onSubmit={handleLogin} className="space-y-4 text-black">
-                                <input type="email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full p-3 rounded-xl bg-gray-100" placeholder="E-Mail" required />
-                                <input type="password" value={password} onChange={e=>setPassword(e.target.value)} className="w-full p-3 rounded-xl bg-gray-100" placeholder="Passwort" required />
+                                <input type="email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-iosBlue" placeholder="E-Mail" required />
+                                <input type="password" value={password} onChange={e=>setPassword(e.target.value)} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-iosBlue" placeholder="Passwort" required />
                                 <button type="submit" className="w-full bg-iosBlue text-white font-bold py-3 rounded-xl">Einloggen</button>
                             </form>
-                            <button onClick={() => setView(window.innerWidth > 768 ? 'desktop' : 'player_tours')} className="mt-4 w-full text-gray-500 text-sm">Zurück</button>
+                            <button onClick={() => changeView(window.innerWidth > 768 ? 'desktop' : 'player_tours')} className="mt-4 w-full text-gray-500 text-sm">Zurück</button>
                         </div>
                     </div>
                 );
@@ -139,6 +185,7 @@
 
             // --- ADMIN: TOUREN ÜBERSICHT ---
             const AdminToursView = () => {
+                const [editingId, setEditingId] = React.useState(null);
                 const [tourName, setTourName] = React.useState('');
                 const [desc, setDesc] = React.useState('');
                 const [duration, setDuration] = React.useState('');
@@ -147,27 +194,32 @@
                 const [refreshments, setRefreshments] = React.useState('');
                 const [showAdvanced, setShowAdvanced] = React.useState(false);
 
-                if (!adminUser) { setView('login'); return null; }
+                if (!adminUser) { setTimeout(() => changeView('login'), 0); return null; }
 
-                const createTour = async (e) => {
+                const saveTour = async (e) => {
                     e.preventDefault();
+                    const tourData = { name: tourName, description: desc, duration, length, imageUrl, refreshments };
                     try {
-                        await addDoc(collection(db, 'tours'), { 
-                            name: tourName, 
-                            description: desc,
-                            duration: duration,
-                            length: length,
-                            imageUrl: imageUrl,
-                            refreshments: refreshments,
-                            createdAt: Date.now() 
-                        });
-                        setTourName(''); setDesc(''); setDuration(''); setLength(''); setImageUrl(''); setRefreshments('');
-                        setShowAdvanced(false);
-                        showToast("Route erfolgreich erstellt!");
-                    } catch (error) {
-                        console.error("Fehler beim Erstellen der Route:", error);
-                        alert("Fehler beim Speichern! Hast du die Firebase Rules für 'tours' aktualisiert?\n" + error.message);
-                    }
+                        if (editingId) {
+                            await updateDoc(doc(db, 'tours', editingId), tourData);
+                            showToast("Route aktualisiert!");
+                        } else {
+                            await addDoc(collection(db, 'tours'), { ...tourData, createdAt: Date.now() });
+                            showToast("Route erfolgreich erstellt!");
+                        }
+                        resetForm();
+                    } catch (error) { alert("Fehler beim Speichern!\n" + error.message); }
+                };
+
+                const editTour = (tour) => {
+                    setEditingId(tour.id); setTourName(tour.name); setDesc(tour.description || '');
+                    setDuration(tour.duration || ''); setLength(tour.length || ''); setImageUrl(tour.imageUrl || '');
+                    setRefreshments(tour.refreshments || ''); setShowAdvanced(true);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                };
+
+                const resetForm = () => {
+                    setEditingId(null); setTourName(''); setDesc(''); setDuration(''); setLength(''); setImageUrl(''); setRefreshments(''); setShowAdvanced(false);
                 };
 
                 const deleteTour = async (id) => {
@@ -182,20 +234,20 @@
                         <div className="max-w-3xl mx-auto">
                             <div className="flex justify-between items-center mb-8">
                                 <h2 className="text-3xl font-bold">Routen verwalten</h2>
-                                <button onClick={() => {signOut(auth); setView('desktop');}} className="text-red-400 border border-red-500 px-3 py-1 rounded-lg hover:bg-red-500 hover:text-white transition">Logout</button>
+                                <button onClick={() => {signOut(auth); changeView('desktop');}} className="text-red-400 border border-red-500 px-3 py-1 rounded-lg">Logout</button>
                             </div>
                             
-                            {/* NEUES, ERWEITERTES FORMULAR */}
-                            <form onSubmit={createTour} className="bg-darkCard p-6 rounded-3xl mb-10 border border-gray-800 shadow-xl">
-                                <h3 className="text-xl font-bold mb-4">Neue Route anlegen</h3>
+                            <form onSubmit={saveTour} className="bg-darkCard p-6 rounded-3xl mb-10 border border-gray-800 shadow-xl">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-xl font-bold text-white">{editingId ? 'Route bearbeiten' : 'Neue Route anlegen'}</h3>
+                                    {editingId && <button type="button" onClick={resetForm} className="text-sm text-gray-400 hover:text-white">Abbrechen</button>}
+                                </div>
                                 <div className="space-y-4 text-black">
                                     <input type="text" value={tourName} onChange={e=>setTourName(e.target.value)} placeholder="Name der Route (z.B. Thalauer Panoramaweg)" className="w-full p-4 rounded-xl bg-gray-100 text-lg font-semibold" required />
-                                    
-                                    <button type="button" onClick={() => setShowAdvanced(!showAdvanced)} className="flex items-center text-gray-400 text-sm font-medium focus:outline-none w-full justify-between p-2 rounded-lg hover:bg-gray-800">
+                                    <button type="button" onClick={() => setShowAdvanced(!showAdvanced)} className="flex items-center text-gray-400 text-sm font-medium w-full justify-between p-2 rounded-lg hover:bg-gray-800">
                                         <span>Erweiterte Infos (Bild, Länge, Einkehr) hinzufügen</span>
                                         <IconChevron open={showAdvanced} />
                                     </button>
-
                                     {showAdvanced && (
                                         <div className="space-y-4 pt-2 border-t border-gray-800 animate-fade-in">
                                             <textarea value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Beschreibung der Route..." className="w-full p-3 rounded-xl bg-gray-100 h-24" />
@@ -207,7 +259,9 @@
                                             <input type="url" value={imageUrl} onChange={e=>setImageUrl(e.target.value)} placeholder="Bild-URL (Link zu einem schönen Foto der Route)" className="w-full p-3 rounded-xl bg-gray-100" />
                                         </div>
                                     )}
-                                    <button type="submit" className="w-full bg-iosBlue text-white font-bold py-4 rounded-xl text-lg mt-2 hover:bg-blue-600 transition-colors">Route speichern</button>
+                                    <button type="submit" className={`w-full text-white font-bold py-4 rounded-xl text-lg mt-2 transition-colors ${editingId ? 'bg-green-600 hover:bg-green-500' : 'bg-iosBlue hover:bg-blue-600'}`}>
+                                        {editingId ? 'Änderungen speichern' : 'Route speichern'}
+                                    </button>
                                 </div>
                             </form>
 
@@ -217,91 +271,174 @@
                                     <div key={tour.id} className="bg-darkCard p-5 rounded-2xl border border-gray-800 flex justify-between items-center group">
                                         <div>
                                             <h3 className="text-xl font-bold text-white">{tour.name}</h3>
-                                            <p className="text-sm text-gray-500 mt-1">
-                                                {tour.duration && <span className="mr-3">{tour.duration}</span>}
-                                                {tour.length && <span>{tour.length}</span>}
-                                            </p>
+                                            <p className="text-sm text-gray-500 mt-1">{tour.duration && <span className="mr-3">{tour.duration}</span>}{tour.length && <span>{tour.length}</span>}</p>
                                         </div>
                                         <div className="flex gap-2">
+                                            <button onClick={() => editTour(tour)} className="bg-gray-800 text-gray-300 hover:text-white px-3 py-2 rounded-xl transition"><IconEdit /></button>
                                             <button onClick={() => deleteTour(tour.id)} className="bg-red-900/30 text-red-500 hover:bg-red-500 hover:text-white px-3 py-2 rounded-xl transition"><IconTrash /></button>
-                                            <button onClick={() => { setActiveTourId(tour.id); setView('admin_stations'); }} className="bg-iosBlue hover:bg-blue-600 text-white px-5 py-2 rounded-xl font-medium transition shadow-lg">Stationen →</button>
+                                            <button onClick={() => changeView('admin_stations', tour.id)} className="bg-iosBlue hover:bg-blue-600 text-white px-5 py-2 rounded-xl font-medium transition shadow-lg">Stationen →</button>
                                         </div>
                                     </div>
                                 ))}
-                                {tours.length === 0 && <p className="text-gray-500 italic">Noch keine Routen angelegt.</p>}
                             </div>
                         </div>
                     </div>
                 );
             };
 
-            // --- ADMIN: STATIONEN FÜR EINE TOUR (MIT KARTE) ---
+            // --- ADMIN: STATIONEN & QUIZ ---
             const AdminStationsView = () => {
+                const [editingId, setEditingId] = React.useState(null);
                 const [name, setName] = React.useState('');
                 const [lat, setLat] = React.useState('');
                 const [lng, setLng] = React.useState('');
-                const [riddle, setRiddle] = React.useState('');
+                const [infoText, setInfoText] = React.useState(''); // Der Info Text (nach dem Rätsel)
                 const [mediaUrl, setMediaUrl] = React.useState('');
+                
+                // Quiz Felder
+                const [hasQuiz, setHasQuiz] = React.useState(false);
+                const [question, setQuestion] = React.useState('');
+                const [answers, setAnswers] = React.useState(['', '', '', '']);
+                const [correctIndex, setCorrectIndex] = React.useState(0);
                 
                 const activeTour = tours.find(t => t.id === activeTourId);
                 const stationsForTour = allStations.filter(s => s.tourId === activeTourId);
                 const mapRef = React.useRef(null);
+                const markerRef = React.useRef(null);
 
-                // Leaflet Map Initialisierung
                 React.useEffect(() => {
                     if (!mapRef.current) {
-                        const map = L.map('admin-map').setView([50.418, 9.757], 14); // Thalau Zentrum ca.
+                        const map = L.map('admin-map').setView([50.418, 9.757], 14); 
                         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OS' }).addTo(map);
-                        
-                        let marker;
                         map.on('click', function(e) {
                             setLat(e.latlng.lat.toFixed(5));
                             setLng(e.latlng.lng.toFixed(5));
-                            if(marker) map.removeLayer(marker);
-                            marker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map);
+                            if(markerRef.current) map.removeLayer(markerRef.current);
+                            markerRef.current = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map);
                         });
                         mapRef.current = map;
                     }
                 }, []);
 
-                const handleAdd = async (e) => {
+                const updateAnswer = (index, value) => {
+                    const newAnswers = [...answers];
+                    newAnswers[index] = value;
+                    setAnswers(newAnswers);
+                };
+
+                const saveStation = async (e) => {
                     e.preventDefault();
-                    if(!lat || !lng) { alert("Bitte klicke zuerst auf die Karte für den Standort!"); return; }
-                    await addDoc(collection(db, 'stations'), {
+                    if(!lat || !lng) { alert("Bitte klicke auf die Karte!"); return; }
+                    
+                    // Bereinige leere Antworten beim Speichern
+                    const cleanAnswers = answers.filter(a => a.trim() !== '');
+                    const stationData = {
                         tourId: activeTourId, name, lat: parseFloat(lat), lng: parseFloat(lng), 
-                        riddle, mediaUrl, order: Date.now() // Simple Sortierung
-                    });
-                    showToast("Station gespeichert!");
-                    setName(''); setLat(''); setLng(''); setRiddle(''); setMediaUrl('');
+                        infoText, mediaUrl, hasQuiz,
+                        quiz: hasQuiz ? { question, answers: cleanAnswers, correctIndex } : null
+                    };
+
+                    try {
+                        if (editingId) {
+                            await updateDoc(doc(db, 'stations', editingId), stationData);
+                            showToast("Station aktualisiert!");
+                        } else {
+                            await addDoc(collection(db, 'stations'), { ...stationData, order: Date.now() });
+                            showToast("Station gespeichert!");
+                        }
+                        resetForm();
+                    } catch (error) { alert("Fehler!"); }
+                };
+
+                const editStation = (st) => {
+                    setEditingId(st.id); setName(st.name); setLat(st.lat); setLng(st.lng);
+                    setInfoText(st.infoText || st.riddle || ''); setMediaUrl(st.mediaUrl || '');
+                    setHasQuiz(st.hasQuiz || false);
+                    if (st.quiz) {
+                        setQuestion(st.quiz.question || '');
+                        setAnswers([...st.quiz.answers, '', '', '', ''].slice(0, 4)); // Fülle auf 4 auf
+                        setCorrectIndex(st.quiz.correctIndex || 0);
+                    }
+                    
+                    if(mapRef.current) {
+                        if(markerRef.current) mapRef.current.removeLayer(markerRef.current);
+                        markerRef.current = L.marker([st.lat, st.lng]).addTo(mapRef.current);
+                        mapRef.current.setView([st.lat, st.lng], 16);
+                    }
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                };
+
+                const resetForm = () => {
+                    setEditingId(null); setName(''); setLat(''); setLng(''); setInfoText(''); setMediaUrl('');
+                    setHasQuiz(false); setQuestion(''); setAnswers(['', '', '', '']); setCorrectIndex(0);
+                    if(markerRef.current && mapRef.current) mapRef.current.removeLayer(markerRef.current);
                 };
 
                 return (
                     <div className="min-h-screen bg-gray-900 p-8 text-white pb-24">
                         <div className="max-w-4xl mx-auto">
-                            <button onClick={() => setView('admin_tours')} className="text-iosBlue mb-4 font-medium">← Zurück zu Touren</button>
+                            <button onClick={() => changeView('admin_tours')} className="text-iosBlue mb-4 font-medium flex items-center"><IconChevronLeft /> Zurück zu Touren</button>
                             <h2 className="text-2xl font-bold mb-6">Stationen: {activeTour?.name}</h2>
 
-                            <div className="bg-darkCard p-6 rounded-2xl mb-8 border border-gray-800">
-                                <h3 className="text-lg font-bold mb-2">1. Standort auf Karte antippen</h3>
-                                <div id="admin-map" className="h-64 w-full rounded-xl mb-4 bg-gray-200"></div>
+                            <div className="bg-darkCard p-6 rounded-3xl mb-8 border border-gray-800 shadow-xl">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-lg font-bold">{editingId ? 'Station bearbeiten' : 'Neue Station anlegen'}</h3>
+                                    {editingId && <button type="button" onClick={resetForm} className="text-sm text-gray-400">Abbrechen</button>}
+                                </div>
                                 
-                                <form onSubmit={handleAdd} className="space-y-4 text-black">
+                                <div id="admin-map" className="h-64 w-full rounded-2xl mb-4 bg-gray-200 shadow-inner"></div>
+                                
+                                <form onSubmit={saveStation} className="space-y-4 text-black">
                                     <div className="flex gap-4">
-                                        <input type="text" value={lat} readOnly placeholder="Breitengrad" className="w-1/2 p-3 rounded-xl bg-gray-200 text-gray-600" />
-                                        <input type="text" value={lng} readOnly placeholder="Längengrad" className="w-1/2 p-3 rounded-xl bg-gray-200 text-gray-600" />
+                                        <input type="text" value={lat} readOnly placeholder="Breitengrad" className="w-1/2 p-3 rounded-xl bg-gray-200 text-gray-500" />
+                                        <input type="text" value={lng} readOnly placeholder="Längengrad" className="w-1/2 p-3 rounded-xl bg-gray-200 text-gray-500" />
                                     </div>
-                                    <input type="text" value={name} onChange={e=>setName(e.target.value)} placeholder="Name der Station" className="w-full p-3 rounded-xl bg-gray-100" required />
+                                    <input type="text" value={name} onChange={e=>setName(e.target.value)} placeholder="Name der Station" className="w-full p-4 rounded-xl bg-gray-100 font-bold text-lg" required />
+                                    
+                                    {/* QUIZ BEREICH */}
+                                    <div className="bg-gray-100 p-4 rounded-2xl border border-gray-300">
+                                        <label className="flex items-center space-x-3 font-bold text-gray-800 cursor-pointer mb-2">
+                                            <input type="checkbox" checked={hasQuiz} onChange={e=>setHasQuiz(e.target.checked)} className="w-5 h-5 rounded text-iosBlue" />
+                                            <span>Quiz / Rätsel für diesen Ort aktivieren</span>
+                                        </label>
+                                        
+                                        {hasQuiz && (
+                                            <div className="mt-4 space-y-3 pl-8 animate-fade-in">
+                                                <input type="text" value={question} onChange={e=>setQuestion(e.target.value)} placeholder="Frage (z.B. Wie viele Balken hat das Haus?)" className="w-full p-3 rounded-xl bg-white border border-gray-200" required />
+                                                <div className="space-y-2">
+                                                    {answers.map((ans, idx) => (
+                                                        <div key={idx} className="flex items-center gap-2">
+                                                            <input type="radio" name="correct" checked={correctIndex === idx} onChange={() => setCorrectIndex(idx)} className="w-5 h-5 text-green-500" />
+                                                            <input type="text" value={ans} onChange={e=>updateAnswer(idx, e.target.value)} placeholder={`Antwortmöglichkeit ${idx+1}`} className={`w-full p-3 rounded-xl bg-white border ${correctIndex === idx ? 'border-green-500 ring-1 ring-green-500' : 'border-gray-200'}`} required={idx < 2} />
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <p className="text-xs text-gray-500 mt-1">Markiere links die richtige Antwort. Min. 2 Antworten erforderlich.</p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <textarea value={infoText} onChange={e=>setInfoText(e.target.value)} placeholder={hasQuiz ? "Info-Text / Auflösung (Erscheint NACH richtiger Antwort)" : "Info-Text (Erscheint, sobald man vor Ort ist)"} className="w-full p-4 rounded-xl h-32 bg-gray-100" required />
                                     <input type="url" value={mediaUrl} onChange={e=>setMediaUrl(e.target.value)} placeholder="Link zu Bild oder YouTube-Video (Optional)" className="w-full p-3 rounded-xl bg-gray-100" />
-                                    <textarea value={riddle} onChange={e=>setRiddle(e.target.value)} placeholder="Das Rätsel / Die Erklärung vor Ort" className="w-full p-3 rounded-xl h-24 bg-gray-100" required />
-                                    <button type="submit" className="w-full bg-iosBlue text-white font-bold py-3 rounded-xl">Station hinzufügen</button>
+                                    
+                                    <button type="submit" className={`w-full text-white font-bold py-4 rounded-xl text-lg transition-colors ${editingId ? 'bg-green-600 hover:bg-green-500' : 'bg-iosBlue hover:bg-blue-600'}`}>
+                                        {editingId ? 'Änderungen speichern' : 'Station hinzufügen'}
+                                    </button>
                                 </form>
                             </div>
 
                             <div className="space-y-3">
                                 {stationsForTour.map((st, idx) => (
-                                    <div key={st.id} className="bg-darkCard p-4 rounded-xl border border-gray-800 flex justify-between items-center">
-                                        <div><span className="text-gray-500 mr-2">#{idx+1}</span><strong className="text-lg">{st.name}</strong></div>
-                                        <button onClick={() => deleteDoc(doc(db, 'stations', st.id))} className="text-red-500 bg-red-900/30 p-2 rounded-lg"><IconTrash /></button>
+                                    <div key={st.id} className="bg-darkCard p-4 rounded-2xl border border-gray-800 flex justify-between items-center">
+                                        <div>
+                                            <span className="text-gray-500 mr-2 font-bold">#{idx+1}</span>
+                                            <strong className="text-lg text-white">{st.name}</strong>
+                                            {st.hasQuiz && <span className="ml-2 text-xs bg-purple-900/50 text-purple-400 px-2 py-1 rounded-md">Quiz</span>}
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button onClick={() => editStation(st)} className="bg-gray-800 text-gray-300 p-2 rounded-xl"><IconEdit /></button>
+                                            <button onClick={() => { if(window.confirm("Löschen?")) deleteDoc(doc(db, 'stations', st.id)); }} className="text-red-500 bg-red-900/30 p-2 rounded-xl"><IconTrash /></button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -314,7 +451,7 @@
             const PlayerToursView = () => {
                 return (
                     <div className="min-h-screen bg-black text-white p-6 pb-24 relative overflow-hidden">
-                        {/* Subtiler Hintergrund-Glow für Premium Look */}
+                        <InstallPrompt />
                         <div className="absolute top-[-10%] left-[-10%] w-[120%] h-[50%] bg-iosBlue/20 blur-[100px] rounded-full pointer-events-none"></div>
 
                         <header className="pt-12 pb-8 text-center relative z-10">
@@ -324,65 +461,41 @@
 
                         <div className="space-y-6 relative z-10 max-w-md mx-auto">
                             {tours.map(tour => (
-                                <div key={tour.id} onClick={() => { setActiveTourId(tour.id); setView('player_game'); }} 
+                                <div key={tour.id} onClick={() => changeView('player_game', tour.id)} 
                                      className="relative rounded-3xl overflow-hidden cursor-pointer transform transition-all active:scale-95 shadow-2xl border border-gray-800/50 bg-darkCard">
-                                    
-                                    {/* Bild oder dunkler Platzhalter */}
                                     {tour.imageUrl ? (
                                         <div className="h-48 w-full bg-cover bg-center" style={{ backgroundImage: `url(${tour.imageUrl})` }}></div>
                                     ) : (
                                         <div className="h-32 w-full bg-gradient-to-br from-gray-800 to-gray-900"></div>
                                     )}
-
-                                    {/* Gradient Overlay über dem Bild */}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent"></div>
-
-                                    {/* Content der Karte */}
                                     <div className="absolute bottom-0 left-0 w-full p-5">
                                         <h2 className="text-2xl font-bold text-white mb-2">{tour.name}</h2>
-                                        
                                         {tour.description && <p className="text-gray-300 text-sm mb-4 line-clamp-2 leading-relaxed">{tour.description}</p>}
-                                        
-                                        {/* Badges (Pillen) */}
                                         <div className="flex flex-wrap gap-2 mb-2">
-                                            {tour.duration && (
-                                                <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-medium text-gray-200 border border-white/5">
-                                                    <IconClock /> {tour.duration}
-                                                </div>
-                                            )}
-                                            {tour.length && (
-                                                <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-medium text-gray-200 border border-white/5">
-                                                    <IconRuler /> {tour.length}
-                                                </div>
-                                            )}
+                                            {tour.duration && <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-medium text-gray-200 border border-white/5"><IconClock /> {tour.duration}</div>}
+                                            {tour.length && <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-medium text-gray-200 border border-white/5"><IconRuler /> {tour.length}</div>}
                                         </div>
-                                        {tour.refreshments && (
-                                            <div className="flex items-center gap-1.5 text-xs text-orange-300 font-medium mt-2 bg-orange-900/30 px-3 py-1.5 rounded-full inline-flex border border-orange-500/20">
-                                                <IconCoffee /> Einkehr: {tour.refreshments}
-                                            </div>
-                                        )}
+                                        {tour.refreshments && <div className="flex items-center gap-1.5 text-xs text-orange-300 font-medium mt-2 bg-orange-900/30 px-3 py-1.5 rounded-full border border-orange-500/20 inline-flex"><IconCoffee /> Einkehr: {tour.refreshments}</div>}
                                     </div>
-
-                                    {/* Play Button Icon */}
-                                    <div className="absolute top-4 right-4 bg-iosBlue/90 backdrop-blur-md p-3 rounded-full text-white shadow-lg">
-                                        <IconPlay />
-                                    </div>
+                                    <div className="absolute top-4 right-4 bg-iosBlue/90 backdrop-blur-md p-3 rounded-full text-white shadow-lg"><IconPlay /></div>
                                 </div>
                             ))}
-                            {tours.length === 0 && (
-                                <div className="bg-darkCard p-8 rounded-3xl text-center border border-gray-800">
-                                    <p className="text-gray-400">Der Admin hat noch keine Routen freigegeben.</p>
-                                </div>
-                            )}
                         </div>
-                        <button onClick={() => setView('login')} className="absolute bottom-6 left-1/2 -translate-x-1/2 text-gray-600 text-sm font-medium hover:text-white transition">Admin Bereich</button>
+                        <button onClick={() => changeView('login')} className="absolute bottom-6 left-1/2 -translate-x-1/2 text-gray-600 text-sm font-medium hover:text-white transition">Admin Bereich</button>
                     </div>
                 );
             };
 
-            // --- SPIELER: DAS HAUPTSPIEL (THALAU HINTERGRUND & SCHLINGERPFAD) ---
+            // --- SPIELER: DAS HAUPTSPIEL (MIT HERO-HEADER & QUIZ) ---
             const PlayerGameView = () => {
                 const [userLoc, setUserLoc] = React.useState(null);
+                // Speichere gelöste Quizze im LocalStorage, damit sie beim Neuladen bleiben
+                const [solvedStations, setSolvedStations] = React.useState(() => JSON.parse(localStorage.getItem('solved_stations') || '{}'));
+                const [selectedAnswers, setSelectedAnswers] = React.useState({});
+                const [quizError, setQuizError] = React.useState({});
+
+                const activeTour = tours.find(t => t.id === activeTourId);
                 const tourStations = allStations.filter(s => s.tourId === activeTourId);
                 
                 React.useEffect(() => {
@@ -402,74 +515,115 @@
                     return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
                 };
 
-                // Finde heraus, welche Station die "aktuelle" ist (die erste, die noch nicht gelöst wurde)
-                // Da wir in einer Web-App ohne Nutzer-Login für Spieler sind, machen wir das rein über die Distanz.
-                // Logik: Station ist freigeschaltet, wenn man nah ist.
+                const handleAnswerSelect = (stationId, answerIndex) => {
+                    setSelectedAnswers(prev => ({...prev, [stationId]: answerIndex}));
+                    setQuizError(prev => ({...prev, [stationId]: false})); // Fehler zurücksetzen
+                };
+
+                const checkQuiz = (station) => {
+                    const selected = selectedAnswers[station.id];
+                    if (selected === undefined) return;
+                    
+                    if (selected === station.quiz.correctIndex) {
+                        const newSolved = {...solvedStations, [station.id]: true};
+                        setSolvedStations(newSolved);
+                        localStorage.setItem('solved_stations', JSON.stringify(newSolved));
+                    } else {
+                        setQuizError(prev => ({...prev, [station.id]: true}));
+                    }
+                };
                 
                 return (
-                    <div className="min-h-screen bg-black text-white relative bg-cover bg-center bg-fixed" 
-                         style={{backgroundImage: 'url(https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Luftbild_Thalau.JPG/1920px-Luftbild_Thalau.JPG)'}}>
+                    <div className="min-h-screen bg-black text-white relative">
                         
-                        {/* Dunkler Overlay für Lesbarkeit */}
-                        <div className="absolute inset-0 bg-black/70 backdrop-blur-[2px] z-0"></div>
+                        {/* NEU: Hero-Header nur oben! Perfekt platziert. */}
+                        <header className="relative w-full h-72 bg-cover bg-center shadow-2xl rounded-b-[40px] z-20" 
+                                style={{backgroundImage: `url(${activeTour?.imageUrl || 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Luftbild_Thalau.JPG/1920px-Luftbild_Thalau.JPG'})`}}>
+                            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black/90 rounded-b-[40px]"></div>
+                            
+                            {/* Zurück Button - Jetzt oben links wie in iOS Apps üblich */}
+                            <button onClick={()=>changeView('player_tours', null)} className="absolute top-12 left-4 bg-black/40 backdrop-blur-md p-2 rounded-full text-white shadow-lg active:scale-95 transition-transform z-30">
+                                <IconChevronLeft />
+                            </button>
 
-                        {/* FIXER HEADER - Ovaler Button-Style */}
-                        <header className="fixed top-0 w-full z-50 pt-10 pb-4 flex justify-center">
-                            <div className="bg-black/90 border border-gray-700 backdrop-blur-md rounded-full px-8 py-3 shadow-2xl flex flex-col items-center">
-                                <h1 className="text-xl font-bold tracking-widest uppercase bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-iosBlue">
-                                    Dorfrallye Thalau
-                                </h1>
-                                {userLoc ? <span className="text-[9px] text-green-400 tracking-wider uppercase mt-1">GPS verbunden</span> : <span className="text-[9px] text-orange-400 tracking-wider uppercase mt-1">Suche Satelliten...</span>}
+                            <div className="absolute bottom-8 left-0 w-full text-center px-6">
+                                <h1 className="text-3xl font-bold text-white tracking-wide leading-tight text-shadow">{activeTour?.name || 'Dorfrallye'}</h1>
+                                {userLoc ? <span className="inline-block mt-2 px-3 py-1 bg-green-500/20 border border-green-500/30 text-green-400 rounded-full text-[10px] font-bold tracking-wider uppercase backdrop-blur-md">GPS aktiv</span> 
+                                         : <span className="inline-block mt-2 px-3 py-1 bg-orange-500/20 border border-orange-500/30 text-orange-400 rounded-full text-[10px] font-bold tracking-wider uppercase backdrop-blur-md">Suche GPS...</span>}
                             </div>
-                            <button onClick={()=>setView('player_tours')} className="absolute left-4 top-12 text-white/50 text-sm">Zurück</button>
                         </header>
 
-                        <main className="relative z-10 pt-36 pb-24 px-4 overflow-x-hidden">
+                        <main className="relative z-10 pt-10 pb-24 px-4 overflow-x-hidden">
                             <div className="relative max-w-md mx-auto">
-                                {/* Die Mittellinie für den Schlingerpfad */}
                                 <div className="timeline-line"></div>
 
                                 {tourStations.map((station, index) => {
                                     const dist = userLoc ? getDistance(userLoc.lat, userLoc.lng, station.lat, station.lng) : null;
-                                    const isClose = dist !== null && dist <= 30;
+                                    const isClose = dist !== null && dist <= 30; // 30 Meter Radius
                                     const isLeft = index % 2 === 0;
-
-                                    // Prüfe ob Video oder Bild
                                     const isVideo = station.mediaUrl && (station.mediaUrl.includes('youtube') || station.mediaUrl.includes('youtu.be') || station.mediaUrl.includes('.mp4'));
+                                    const isSolved = solvedStations[station.id];
 
                                     return (
                                         <div key={station.id} className={`flex items-center w-full my-12 relative ${isLeft ? 'flex-row' : 'flex-row-reverse'}`}>
                                             
-                                            {/* Der Knotenpunkt in der Mitte */}
-                                            <div className={`absolute left-1/2 -translate-x-1/2 w-10 h-10 rounded-full flex items-center justify-center border-4 border-black z-10 shadow-lg transition-colors ${isClose ? 'bg-green-500' : 'bg-gray-800 text-gray-500'}`}>
-                                                {isClose ? <IconCheck /> : <IconLock />}
+                                            {/* Knotenpunkt */}
+                                            <div className={`absolute left-1/2 -translate-x-1/2 w-10 h-10 rounded-full flex items-center justify-center border-4 border-black z-10 shadow-lg transition-colors ${isClose || isSolved ? 'bg-green-500' : 'bg-gray-800 text-gray-500'}`}>
+                                                {isClose || isSolved ? <IconCheck /> : <IconLock />}
                                             </div>
 
-                                            {/* Die Info-Karte (Links oder Rechts) */}
+                                            {/* Info-Karte */}
                                             <div className={`w-1/2 ${isLeft ? 'pr-8 text-right' : 'pl-8 text-left'}`}>
-                                                <div className={`p-4 rounded-2xl border backdrop-blur-md shadow-xl transition-all ${isClose ? 'bg-darkCard/90 border-green-500/50' : 'bg-black/60 border-gray-800'}`}>
-                                                    <h2 className="font-bold text-lg mb-1">{station.name}</h2>
+                                                <div className={`p-5 rounded-3xl border shadow-xl transition-all ${isClose || isSolved ? 'bg-darkCard border-green-500/30' : 'bg-darkCard/50 border-gray-800'}`}>
+                                                    <h2 className="font-bold text-lg mb-1 leading-tight">{station.name}</h2>
                                                     
-                                                    {dist !== null && !isClose && (
-                                                        <span className="text-xs text-gray-400 font-medium bg-gray-900 px-2 py-1 rounded-md inline-block">
+                                                    {dist !== null && !isClose && !isSolved && (
+                                                        <span className="text-xs text-gray-400 font-medium bg-gray-900 px-2 py-1 rounded-lg inline-block mt-1">
                                                             Noch {Math.round(dist)}m
                                                         </span>
                                                     )}
 
-                                                    {isClose ? (
-                                                        <div className="mt-3 text-sm text-gray-200">
-                                                            {station.mediaUrl && isVideo && (
-                                                                <div className="mb-3 rounded-lg overflow-hidden border border-gray-700">
-                                                                    <a href={station.mediaUrl} target="_blank" className="text-iosBlue underline text-xs">Video ansehen (Klick)</a>
+                                                    {/* QUIZ ODER INFO ANZEIGEN */}
+                                                    {isClose || isSolved ? (
+                                                        <div className={`mt-4 text-left ${isLeft ? '' : ''}`}>
+                                                            
+                                                            {/* Wenn Quiz existiert und NICHT gelöst ist -> QUIZ ANZEIGEN */}
+                                                            {station.hasQuiz && !isSolved && (
+                                                                <div className="bg-gray-900 rounded-2xl p-4 border border-gray-700">
+                                                                    <p className="font-bold text-sm text-iosBlue mb-3">{station.quiz?.question}</p>
+                                                                    <div className="space-y-2 mb-4">
+                                                                        {station.quiz?.answers.map((ans, aIdx) => (
+                                                                            <button key={aIdx} 
+                                                                                    onClick={() => handleAnswerSelect(station.id, aIdx)}
+                                                                                    className={`w-full text-left p-3 rounded-xl text-sm transition-colors border ${selectedAnswers[station.id] === aIdx ? 'bg-iosBlue border-iosBlue text-white font-bold' : 'bg-black border-gray-700 text-gray-300'}`}>
+                                                                                {ans}
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                    {quizError[station.id] && <p className="text-xs text-red-400 mb-3 font-medium">Leider falsch! Versuch es nochmal.</p>}
+                                                                    <button onClick={() => checkQuiz(station)} className="w-full bg-white text-black font-bold py-3 rounded-xl text-sm active:bg-gray-200">Antwort prüfen</button>
                                                                 </div>
                                                             )}
-                                                            {station.mediaUrl && !isVideo && (
-                                                                <img src={station.mediaUrl} className="w-full rounded-lg mb-3 border border-gray-700" alt="Station" />
+
+                                                            {/* Wenn kein Quiz existiert ODER Quiz gelöst ist -> AUFLÖSUNG ANZEIGEN */}
+                                                            {(!station.hasQuiz || isSolved) && (
+                                                                <div className="animate-fade-in-up">
+                                                                    {station.hasQuiz && <div className="text-xs text-green-400 font-bold mb-2 uppercase tracking-wider">✓ Rätsel gelöst</div>}
+                                                                    
+                                                                    {station.mediaUrl && isVideo && (
+                                                                        <div className="mb-4 rounded-xl overflow-hidden border border-gray-700">
+                                                                            <a href={station.mediaUrl} target="_blank" className="block bg-gray-800 p-3 text-center text-iosBlue font-medium text-sm">▶ Video ansehen</a>
+                                                                        </div>
+                                                                    )}
+                                                                    {station.mediaUrl && !isVideo && (
+                                                                        <img src={station.mediaUrl} className="w-full rounded-xl mb-4 border border-gray-700 shadow-md" alt="Station Info" />
+                                                                    )}
+                                                                    <p className="text-sm text-gray-300 leading-relaxed">{station.infoText || station.riddle}</p>
+                                                                </div>
                                                             )}
-                                                            <p className="leading-relaxed">{station.riddle}</p>
                                                         </div>
                                                     ) : (
-                                                        <p className="text-xs text-gray-500 mt-2">Gehe zum Ort, um das Rätsel zu öffnen.</p>
+                                                        <p className="text-xs text-gray-500 mt-2 leading-relaxed">Gehe zum Ort, um den Inhalt freizuschalten.</p>
                                                     )}
                                                 </div>
                                             </div>
@@ -482,9 +636,9 @@
                 );
             };
 
-            const Toast = () => toast ? <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl z-[100] border border-gray-600">{toast}</div> : null;
+            const Toast = () => toast ? <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-gray-800/90 backdrop-blur-md text-white px-6 py-3 rounded-full shadow-2xl z-[100] border border-gray-600 font-medium whitespace-nowrap">{toast}</div> : null;
 
-            if (view === 'loading') return <div className="min-h-screen bg-black flex items-center justify-center text-gray-500">Lade Thalau...</div>;
+            if (view === 'loading') return <div className="min-h-screen bg-black flex items-center justify-center text-gray-500 font-medium">Lade App...</div>;
 
             return (
                 <div>
@@ -503,4 +657,4 @@
         root.render(<App />);
     </script>
 </body>
-<!-- ... existing code ... -->
+</html>
