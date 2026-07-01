@@ -5,33 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Dorfrallye Thalau</title>
     
-    <!-- PWA & Apple Settings -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Luftbild_Thalau.JPG/1920px-Luftbild_Thalau.JPG">
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = {
-            theme: { extend: { colors: { iosBlue: '#0A84FF', iosBg: '#000000', darkCard: '#1C1C1E' } } }
-        }
+        tailwind.config = { theme: { extend: { colors: { iosBlue: '#0A84FF', iosBg: '#000000', darkCard: '#1C1C1E' } } } }
     </script>
 
-    <!-- Leaflet Map CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-    <!-- jsPDF für die Urkunde -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-    <!-- React & Babel -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        body { background-color: #000000; color: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; margin: 0; padding: 0; }
+        body { background-color: #000000; color: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; margin: 0; padding: 0; }
         ::-webkit-scrollbar { width: 0px; background: transparent; }
         
         .timeline-line { position: absolute; left: 50%; transform: translateX(-50%); width: 2px; background: #333; top: 0; bottom: 0; z-index: 0; }
@@ -40,15 +32,12 @@
         .timeline-item.right { justify-content: flex-end; }
         .timeline-card-wrapper { width: 45%; }
         
-        /* Überschreibt Leaflet z-index Konflikte */
         .leaflet-container { z-index: 1 !important; border-radius: 12px; }
-        .leaflet-control-attribution { display: none; } /* Clean UI */
+        .leaflet-control-attribution { display: none; }
+        .text-shadow { text-shadow: 0px 2px 8px rgba(0,0,0,0.8); }
 
-        .text-shadow { text-shadow: 0px 2px 10px rgba(0,0,0,0.8); }
-
-        /* Butterweiche Pop-up Animationen */
         .sheet-transition { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), height 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
-        .fade-mask { position: fixed; top: 20vh; left: 0; width: 100%; height: 60px; background: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%); z-index: 40; pointer-events: none; }
+        .fade-mask { position: fixed; top: 25vh; left: 0; width: 100%; height: 80px; background: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%); z-index: 40; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -65,14 +54,14 @@
             projectId: "dorf-rallye",
             storageBucket: "dorf-rallye.firebasestorage.app",
             messagingSenderId: "816087472841",
-            appId: "1:816087472841:web:daacaf4554b37ce9a6cb18",
-            measurementId: "G-M6E4P73X60"
+            appId: "1:816087472841:web:daacaf4554b37ce9a6cb18"
         };
         
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // Icons
         const IconLock = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>;
         const IconCheck = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>;
         const IconChevronLeft = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>;
@@ -81,7 +70,8 @@
         const IconRuler = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.3 15.3l-13.4 13.4a2 2 0 0 1-2.8 0l-2.8-2.8a2 2 0 0 1 0-2.8l13.4-13.4a2 2 0 0 1 2.8 0l2.8 2.8a2 2 0 0 1 0 2.8z"></path><path d="M14.5 5.5l4 4"></path><path d="M11.5 8.5l4 4"></path><path d="M8.5 11.5l4 4"></path><path d="M5.5 14.5l4 4"></path></svg>;
         const IconMountain = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3l4 8 5-5 5 15H2L8 3z"></path></svg>;
         const IconCoffee = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>;
-        const IconUndo = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>;
+        const IconEdit = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>;
+        const IconTrash = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>;
 
         function App() {
             const [view, setView] = React.useState('loading'); 
@@ -111,10 +101,12 @@
                 return () => { unsubTours(); unsubStations(); unsubSettings(); };
             }, []);
 
+            // --------------------------------------------------------
+            // THALAU ENTDECKEN (STARTSEITE)
+            // --------------------------------------------------------
             const PlayerToursView = () => (
-                <div className="min-h-screen bg-black text-white relative overflow-hidden pb-12">
-                    {/* Header mit Video oder Bild (Admin Settings) */}
-                    <header className="relative w-full h-[40vh] bg-gray-900 rounded-b-[40px] overflow-hidden shadow-2xl z-10 border-b border-white/10">
+                <div className="min-h-screen bg-black text-white flex flex-col relative overflow-hidden">
+                    <header className="relative w-full h-[45vh] bg-gray-900 rounded-b-[40px] overflow-hidden shadow-2xl z-10 flex-shrink-0">
                         {appSettings.bgVideoUrl ? (
                             <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover opacity-60">
                                 <source src={appSettings.bgVideoUrl} type="video/mp4" />
@@ -122,98 +114,100 @@
                         ) : (
                             <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Luftbild_Thalau.JPG/1920px-Luftbild_Thalau.JPG" className="absolute inset-0 w-full h-full object-cover opacity-60" alt="Thalau" />
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/50"></div>
-                        <div className="absolute bottom-8 left-0 w-full text-center px-6">
-                            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white text-shadow mb-2">Thalau Entdecken</h1>
-                            <p className="text-gray-300 font-medium">Wähle deine Route und starte das Abenteuer.</p>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30"></div>
+                        
+                        {/* Die Überschrift wieder mit Kachel-Effekt */}
+                        <div className="absolute bottom-10 left-0 w-full px-6 flex justify-center">
+                            <div className="bg-black/40 backdrop-blur-md border border-white/10 px-8 py-4 rounded-[2rem] shadow-xl text-center">
+                                <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white text-shadow mb-1">Thalau Entdecken</h1>
+                                <p className="text-gray-300 font-medium text-sm">Wähle deine Route</p>
+                            </div>
                         </div>
                     </header>
 
-                    <div className="px-6 mt-8 space-y-6 relative z-10 max-w-md mx-auto">
+                    {/* Touren Liste flex-grow drückt den Footer nach unten */}
+                    <div className="px-6 mt-8 space-y-6 relative z-10 max-w-md mx-auto w-full flex-grow">
                         {tours.map(tour => (
                             <div key={tour.id} onClick={() => { setActiveTourId(tour.id); setView('player_game'); }} 
                                  className="relative rounded-[28px] overflow-hidden cursor-pointer transform transition-all active:scale-[0.98] shadow-2xl border border-gray-800 bg-darkCard group">
                                 <div className="h-40 w-full bg-cover bg-center" style={{ backgroundImage: `url(${tour.imageUrl || 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Luftbild_Thalau.JPG/1920px-Luftbild_Thalau.JPG'})` }}></div>
                                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent"></div>
                                 <div className="absolute bottom-0 left-0 w-full p-5">
-                                    <h2 className="text-2xl font-bold text-white mb-2">{tour.name}</h2>
-                                    {tour.description && <p className="text-gray-300 text-[13px] mb-4 line-clamp-2 leading-relaxed">{tour.description}</p>}
+                                    <h2 className="text-xl font-bold text-white mb-1">{tour.name}</h2>
+                                    {tour.description && <p className="text-gray-400 text-xs mb-3 line-clamp-2 leading-relaxed">{tour.description}</p>}
                                     <div className="flex flex-wrap gap-2">
                                         {tour.duration && <span className="flex items-center gap-1 bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-lg text-xs font-medium text-gray-200"><IconClock /> {tour.duration}</span>}
                                         {tour.length && <span className="flex items-center gap-1 bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-lg text-xs font-medium text-gray-200"><IconRuler /> {tour.length}</span>}
                                         {tour.elevation && <span className="flex items-center gap-1 bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-lg text-xs font-medium text-gray-200"><IconMountain /> {tour.elevation}</span>}
                                     </div>
-                                    {tour.refreshments && <div className="mt-3 inline-flex items-center gap-1.5 text-xs text-orange-300 font-medium bg-orange-900/30 px-3 py-1.5 rounded-xl border border-orange-500/20"><IconCoffee /> {tour.refreshments}</div>}
                                 </div>
                             </div>
                         ))}
                     </div>
 
-                    <footer className="mt-16 pb-8 text-center text-xs text-gray-600 flex flex-col items-center gap-4">
-                        <button onClick={() => setView('login')} className="font-medium hover:text-white transition">Admin Bereich</button>
-                        <div className="flex gap-4">
-                            {appSettings.impressumUrl && <a href={appSettings.impressumUrl} target="_blank" className="hover:text-gray-400 underline">Impressum</a>}
-                            {appSettings.datenschutzUrl && <a href={appSettings.datenschutzUrl} target="_blank" className="hover:text-gray-400 underline">Datenschutz</a>}
+                    {/* Statischer Footer (Immer ganz unten am Dokumenten-Ende) */}
+                    <footer className="w-full mt-12 pb-8 pt-6 border-t border-white/10 text-center text-xs text-gray-500 flex flex-col items-center gap-3">
+                        <button onClick={() => setView('login')} className="font-medium hover:text-white transition bg-gray-900 px-4 py-2 rounded-full">Admin Login</button>
+                        <div className="flex gap-4 mt-2">
+                            {appSettings.impressumUrl && <a href={appSettings.impressumUrl} target="_blank" className="hover:text-gray-300 underline">Impressum</a>}
+                            {appSettings.datenschutzUrl && <a href={appSettings.datenschutzUrl} target="_blank" className="hover:text-gray-300 underline">Datenschutz</a>}
                         </div>
                     </footer>
                 </div>
             );
 
-            const MiniMap = ({ targetLat, targetLng, userLoc, tourPath, isExpanded }) => {
+            // --------------------------------------------------------
+            // KOMPONENTE: MINIMAP FÜR POP-UP
+            // --------------------------------------------------------
+            const MiniMap = ({ targetLat, targetLng, userLoc, tourPath }) => {
                 const mapRef = React.useRef(null);
                 const containerRef = React.useRef(null);
                 const userMarkerRef = React.useRef(null);
                 const targetMarkerRef = React.useRef(null);
                 const guideLineRef = React.useRef(null);
-                const customPathRef = React.useRef(null);
 
                 React.useEffect(() => {
                     if (!mapRef.current && userLoc && containerRef.current) {
-                        // 1. Initialisierung der Karte
                         mapRef.current = L.map(containerRef.current, { zoomControl: false, attributionControl: false }).setView([userLoc.lat, userLoc.lng], 16);
                         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(mapRef.current);
                         
                         userMarkerRef.current = L.circleMarker([userLoc.lat, userLoc.lng], { color: '#0A84FF', radius: 8, fillOpacity: 1 }).addTo(mapRef.current);
                         if(targetLat) targetMarkerRef.current = L.marker([targetLat, targetLng]).addTo(mapRef.current);
                         
-                        // Der gezeichnete Custom-Pfad des Admins
                         if (tourPath && tourPath.length > 0) {
-                            customPathRef.current = L.polyline(tourPath, { color: '#0A84FF', weight: 5, opacity: 0.8 }).addTo(mapRef.current);
+                            L.polyline(tourPath, { color: '#0A84FF', weight: 5, opacity: 0.8 }).addTo(mapRef.current);
                         }
 
-                        // Luftlinie als Guide zum nächsten Ziel
                         if (targetLat) {
                             guideLineRef.current = L.polyline([[userLoc.lat, userLoc.lng], [targetLat, targetLng]], { color: '#666', weight: 3, dashArray: '5, 10' }).addTo(mapRef.current);
                             mapRef.current.fitBounds([[userLoc.lat, userLoc.lng], [targetLat, targetLng]], { padding: [20, 20], maxZoom: 18 });
                         }
 
-                        // WICHTIG: ResizeObserver fixt den "blauen Hintergrund" Bug beim Aufziehen!
                         const ro = new ResizeObserver(() => {
-                            if (mapRef.current) {
-                                // Kurzer Timeout stellt sicher, dass die CSS Animation durch ist
-                                setTimeout(() => mapRef.current.invalidateSize(), 50);
-                            }
+                            if (mapRef.current) setTimeout(() => mapRef.current.invalidateSize(), 50);
                         });
                         ro.observe(containerRef.current);
                         return () => ro.disconnect();
                     } else if (mapRef.current && userLoc) {
-                        // Update existierender Marker
                         userMarkerRef.current.setLatLng([userLoc.lat, userLoc.lng]);
                         if(targetLat && targetMarkerRef.current) targetMarkerRef.current.setLatLng([targetLat, targetLng]);
                         if(targetLat && guideLineRef.current) guideLineRef.current.setLatLngs([[userLoc.lat, userLoc.lng], [targetLat, targetLng]]);
                     }
                 }, [targetLat, targetLng, userLoc, tourPath]);
 
-                return <div ref={containerRef} className="w-full h-full rounded-xl bg-gray-800 z-0"></div>;
+                return <div ref={containerRef} className="w-full h-full rounded-2xl bg-gray-800 z-0"></div>;
             };
 
+            // --------------------------------------------------------
+            // HAUPTSPIEL (RALLYE ANSICHT)
+            // --------------------------------------------------------
             const PlayerGameView = () => {
                 const [userLoc, setUserLoc] = React.useState(null);
                 const [currentStationIndex, setCurrentStationIndex] = React.useState(0);
                 const [score, setScore] = React.useState(0);
                 const [sheetState, setSheetState] = React.useState('navigating'); 
                 const [sheetMode, setSheetMode] = React.useState('quiz'); 
-                const [sheetExpanded, setSheetExpanded] = React.useState(false); // Für das Map-Popup
+                const [sheetExpanded, setSheetExpanded] = React.useState(false);
 
                 const activeTour = tours.find(t => t.id === activeTourId);
                 const tourStations = allStations.filter(s => s.tourId === activeTourId);
@@ -223,8 +217,8 @@
                     if (!("geolocation" in navigator)) return;
                     const watchId = navigator.geolocation.watchPosition(
                         (pos) => setUserLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                        (err) => console.log("GPS Fehler", err),
-                        { enableHighAccuracy: true, maximumAge: 5000, timeout: 5000 }
+                        (err) => console.log("GPS Fehler"),
+                        { enableHighAccuracy: true }
                     );
                     return () => navigator.geolocation.clearWatch(watchId);
                 }, []);
@@ -243,9 +237,14 @@
                     if (sheetState === 'navigating' && currentDistance !== null && currentDistance <= 30) {
                         setSheetState('at_station');
                         setSheetMode(currentStation.hasQuiz ? 'quiz' : 'info');
-                        setSheetExpanded(true); // Klappe Menü bei Ankunft auf
+                        setSheetExpanded(true);
                     }
                 }, [currentDistance, sheetState, currentStation]);
+
+                const handleQuizAnswer = (selectedIndex) => {
+                    if (selectedIndex === currentStation.quiz?.correctIndex) setScore(s => s + 100);
+                    setSheetMode('info');
+                };
 
                 const handleNextStation = () => {
                     if (currentStationIndex + 1 < tourStations.length) {
@@ -258,33 +257,41 @@
                     }
                 };
 
+                // Die Berechnung für den dynamischen Platzhalter am Ende der Zeitachse
+                const getSpacerHeight = () => {
+                    if (sheetState === 'hidden') return '20px';
+                    return sheetExpanded ? '80vh' : '40vh'; // 40vh ist ca die Höhe des kleinen Popups
+                };
+
                 return (
                     <div className="min-h-screen bg-black">
                         
-                        {/* HEADER - Kürzer (20vh), Schrift größer, Harmonischer Zurück-Button */}
-                        <header className="fixed top-0 left-0 w-full h-[20vh] z-50 overflow-hidden bg-black">
+                        {/* HEADER - Wieder wie im Original (ca 30vh), GPS Button ist zurück, Zurück-Button iOS-Style */}
+                        <header className="fixed top-0 left-0 w-full h-[30vh] z-50 overflow-hidden bg-black">
                             <img src={activeTour?.imageUrl || "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Luftbild_Thalau.JPG/1920px-Luftbild_Thalau.JPG"} 
                                  className="absolute inset-0 w-full h-full object-cover" alt="Hintergrund" />
+                            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/50 to-[#000000]"></div>
                             
-                            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/50 to-[#000000]"></div>
-                            
-                            <button onClick={()=>setView('player_tours')} className="absolute top-12 left-4 p-2.5 bg-black/40 backdrop-blur-md rounded-full text-white shadow-lg active:scale-95 transition-transform z-50">
+                            {/* Zurück-Button perfekt für Notch/Safe-Area platziert */}
+                            <button onClick={()=>setView('player_tours')} className="absolute top-10 left-4 w-10 h-10 flex items-center justify-center bg-black/30 backdrop-blur-md rounded-full text-white shadow-lg z-50 active:scale-90 transition-transform">
                                 <IconChevronLeft />
                             </button>
 
-                            <div className="absolute bottom-4 left-0 w-full flex flex-col items-center justify-center px-4">
-                                <h1 className="text-4xl font-bold text-white text-center leading-tight text-shadow">
-                                    {activeTour?.name || "Tour"}
+                            <div className="absolute inset-0 flex flex-col items-center justify-center px-4 pt-4">
+                                <h1 className="text-3xl font-bold text-white text-center leading-tight text-shadow">
+                                    {activeTour?.name || "Historische Tour"}
                                 </h1>
+                                {/* GPS Badge ist wieder da */}
+                                <div className={`mt-3 px-4 py-1.5 rounded-full border text-xs font-bold uppercase tracking-widest backdrop-blur-sm ${userLoc ? 'border-green-500 bg-green-900/40 text-green-400' : 'border-orange-500 bg-orange-900/40 text-orange-400'}`}>
+                                    {userLoc ? "GPS AKTIV" : "SUCHE GPS..."}
+                                </div>
                             </div>
                         </header>
 
-                        {/* FADE MASK - Sanfter Übergang beim Hochscrollen */}
-                        <div className="fade-mask"></div>
+                        <div className="fade-mask" style={{ top: '30vh' }}></div>
 
-                        {/* ZEITACHSE - Extremes Padding Bottom, damit man an Pop-up vorbeiscrollen kann */}
-                        <main className="relative z-10 px-4 pb-[60vh]" style={{ paddingTop: '22vh' }}>
-                            <div className="relative max-w-md mx-auto pt-6">
+                        <main className="relative z-10 px-4" style={{ paddingTop: '32vh' }}>
+                            <div className="relative max-w-md mx-auto pt-4">
                                 <div className="timeline-line"></div>
 
                                 {tourStations.map((station, index) => {
@@ -301,17 +308,11 @@
 
                                             <div className="timeline-card-wrapper">
                                                 <div className={`p-4 flex flex-col items-center text-center shadow-2xl rounded-2xl border transition-colors ${isCurrent ? 'bg-darkCard border-iosBlue/50' : 'bg-[#121212] border-white/5'}`}>
-                                                    <h2 className="text-white font-bold mb-2 text-base md:text-lg break-words w-full">
+                                                    <h2 className="text-white font-bold mb-1 text-base break-words w-full">
                                                         {isFuture ? `Station ${index + 1}` : station.name}
                                                     </h2>
-                                                    
-                                                    {isCurrent && currentDistance !== null && (
-                                                        <div className="bg-iosBlue/20 text-iosBlue font-bold text-xs px-3 py-1.5 rounded-full mb-3 border border-iosBlue/30">
-                                                            Noch {Math.round(currentDistance)}m
-                                                        </div>
-                                                    )}
-
-                                                    <p className="text-gray-400 text-[13px] leading-snug">
+                                                    {/* Meter-Anzeige aus Kachel entfernt (jetzt im Pop-up) */}
+                                                    <p className="text-gray-500 text-[12px] leading-snug mt-1">
                                                         {isPast ? "Erfolgreich abgeschlossen." : isCurrent ? "Gehe zum Ort, um das Rätsel zu öffnen." : "Noch gesperrt."}
                                                     </p>
                                                 </div>
@@ -319,41 +320,71 @@
                                         </div>
                                     );
                                 })}
+
+                                {/* Unsichtbarer Spacer, der sich dynamisch dem Pop-up anpasst. Limitiert den Scroll-Bereich exakt! */}
+                                <div className="w-full transition-all duration-300" style={{ height: getSpacerHeight() }}></div>
                             </div>
                         </main>
 
-                        {/* BOTTOM SHEET - Interaktiv mit Resize */}
+                        {/* BOTTOM SHEET */}
                         {sheetState !== 'hidden' && (
-                            <div className={`fixed bottom-0 left-0 w-full z-[100] bg-[#1C1C1E] border-t border-gray-800 rounded-t-[32px] shadow-[0_-20px_50px_rgba(0,0,0,0.8)] sheet-transition ${sheetExpanded ? 'h-[75vh]' : 'h-auto pb-8'}`}>
-                                
-                                {/* Handle zum Ziehen/Klicken */}
-                                <div className="w-full pt-4 pb-4 flex justify-center cursor-pointer" onClick={() => setSheetExpanded(!sheetExpanded)}>
+                            <div className={`fixed bottom-0 left-0 w-full z-[100] bg-[#1C1C1E] border-t border-gray-800 rounded-t-[32px] shadow-[0_-20px_50px_rgba(0,0,0,0.8)] sheet-transition flex flex-col ${sheetExpanded ? 'h-[80vh]' : 'h-auto pb-8'}`}>
+                                <div className="w-full pt-3 pb-3 flex justify-center cursor-pointer flex-shrink-0" onClick={() => setSheetExpanded(!sheetExpanded)}>
                                     <div className="w-14 h-1.5 bg-gray-600 rounded-full"></div>
                                 </div>
 
-                                <div className="px-6 h-full overflow-y-auto pb-12">
+                                <div className="px-6 flex-1 overflow-y-auto">
                                     {sheetState === 'navigating' && currentStation && (
-                                        <div className="h-full flex flex-col">
-                                            <div className="flex justify-between items-end mb-4 flex-shrink-0">
-                                                <div>
+                                        <div className="h-full flex flex-col pb-6">
+                                            {/* Station Name & Meter Anzeige jetzt wunderschön vereint im Pop-up */}
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div className="flex-1 pr-4">
                                                     <p className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-1">Nächstes Ziel</p>
-                                                    <h3 className="text-2xl font-bold text-white leading-tight">{currentStation.name}</h3>
+                                                    <h3 className="text-xl font-bold text-white leading-tight">{currentStation.name}</h3>
                                                 </div>
+                                                {/* Meter Anzeige prominent */}
+                                                {currentDistance !== null && (
+                                                    <div className="bg-iosBlue text-white font-bold text-sm px-3 py-1.5 rounded-xl shadow-lg whitespace-nowrap">
+                                                        {Math.round(currentDistance)} m
+                                                    </div>
+                                                )}
                                             </div>
                                             
-                                            {/* Karte expandiert mit dem Container */}
-                                            <div className={`w-full bg-gray-800 rounded-2xl transition-all duration-300 relative ${sheetExpanded ? 'flex-1 min-h-[300px]' : 'h-32'}`}>
-                                                <MiniMap targetLat={currentStation.lat} targetLng={currentStation.lng} userLoc={userLoc} tourPath={activeTour?.path} isExpanded={sheetExpanded} />
+                                            {/* Minikarte füllt den Platz deutlich besser aus (min-h-[160px]) */}
+                                            <div className={`w-full bg-gray-800 rounded-2xl transition-all duration-300 relative ${sheetExpanded ? 'flex-1 min-h-[300px]' : 'h-40'}`}>
+                                                <MiniMap targetLat={currentStation.lat} targetLng={currentStation.lng} userLoc={userLoc} tourPath={activeTour?.path} />
                                                 {!sheetExpanded && <div className="absolute inset-0 bg-black/10 flex items-center justify-center pointer-events-none rounded-2xl"><span className="bg-black/60 text-white text-xs px-3 py-1 rounded-full backdrop-blur-md">Tippen für große Karte</span></div>}
                                             </div>
                                         </div>
                                     )}
 
                                     {sheetState === 'at_station' && (
-                                        // ... (Hier bleibt die Quiz Logik identisch zum vorherigen Code)
-                                        <div className="pt-2">
+                                        <div className="pt-2 pb-8">
                                             <h3 className="text-2xl font-bold text-white mb-4">Ziel erreicht!</h3>
-                                            <button onClick={handleNextStation} className="w-full bg-iosBlue text-white font-bold py-4 rounded-xl active:bg-blue-600 transition mt-6">Weiter zur nächsten Station</button>
+                                            
+                                            {sheetMode === 'quiz' && currentStation.hasQuiz && (
+                                                <div className="space-y-4">
+                                                    <p className="text-gray-300 font-medium">{currentStation.quiz?.question}</p>
+                                                    <div className="space-y-2">
+                                                        {currentStation.quiz?.answers.map((ans, idx) => (
+                                                            <button key={idx} onClick={() => handleQuizAnswer(idx)} className="w-full bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-xl text-left border border-gray-700 transition">
+                                                                {ans}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {sheetMode === 'info' && (
+                                                <div className="space-y-4">
+                                                    {currentStation.mediaUrl && <img src={currentStation.mediaUrl} alt="Info" className="w-full h-48 object-cover rounded-xl border border-gray-700" />}
+                                                    <div className="bg-gray-800/50 p-4 rounded-xl border border-gray-800">
+                                                        <h4 className="font-bold text-sm text-iosBlue mb-2">Information</h4>
+                                                        <p className="text-sm text-gray-300 leading-relaxed">{currentStation.infoText || currentStation.riddle || "Keine weiteren Infos hinterlegt."}</p>
+                                                    </div>
+                                                    <button onClick={handleNextStation} className="w-full bg-iosBlue text-white font-bold py-4 rounded-xl active:bg-blue-600 transition">Weiter zur nächsten Station</button>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -363,7 +394,233 @@
                 );
             };
 
-            // Das Formular für Impressum & Video
+            // --------------------------------------------------------
+            // ADMIN BEREICH (VOLLSTÄNDIG MIT EDIT & DATEN-PREFILL)
+            // --------------------------------------------------------
+            const LoginView = () => {
+                const [email, setEmail] = React.useState('');
+                const [password, setPassword] = React.useState('');
+                const handleLogin = async (e) => {
+                    e.preventDefault();
+                    try { await signInWithEmailAndPassword(auth, email, password); setView('admin_tours'); }
+                    catch (err) { alert("Login fehlgeschlagen."); }
+                };
+                return (
+                    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-6">
+                        <form onSubmit={handleLogin} className="bg-darkCard p-8 rounded-3xl max-w-sm w-full space-y-4">
+                            <h2 className="text-2xl font-bold text-white mb-6">Admin Login</h2>
+                            <input type="email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full p-3 rounded-xl text-black" placeholder="E-Mail" />
+                            <input type="password" value={password} onChange={e=>setPassword(e.target.value)} className="w-full p-3 rounded-xl text-black" placeholder="Passwort" />
+                            <button type="submit" className="w-full bg-iosBlue text-white font-bold py-3 rounded-xl">Einloggen</button>
+                            <button type="button" onClick={() => setView('player_tours')} className="w-full text-gray-500 text-sm mt-4">Zurück</button>
+                        </form>
+                    </div>
+                );
+            };
+
+            const AdminToursView = () => {
+                const [editingId, setEditingId] = React.useState(null);
+                const [formData, setFormData] = React.useState({ name: '', description: '', duration: '', length: '', elevation: '', refreshments: '', imageUrl: '' });
+
+                const editTour = (tour) => {
+                    setEditingId(tour.id);
+                    setFormData({ name: tour.name||'', description: tour.description||'', duration: tour.duration||'', length: tour.length||'', elevation: tour.elevation||'', refreshments: tour.refreshments||'', imageUrl: tour.imageUrl||'' });
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                };
+
+                const saveTour = async (e) => {
+                    e.preventDefault();
+                    if (editingId) {
+                        await updateDoc(doc(db, 'tours', editingId), formData);
+                        showToast("Tour aktualisiert!");
+                    } else {
+                        await addDoc(collection(db, 'tours'), { ...formData, createdAt: Date.now() });
+                        showToast("Tour erstellt!");
+                    }
+                    setEditingId(null); setFormData({ name: '', description: '', duration: '', length: '', elevation: '', refreshments: '', imageUrl: '' });
+                };
+
+                return (
+                    <div className="min-h-screen bg-gray-900 p-8 text-white pb-24">
+                        <div className="flex justify-between items-center mb-8">
+                            <h2 className="text-3xl font-bold">Touren</h2>
+                            <div className="flex gap-2">
+                                <button onClick={() => setView('admin_settings')} className="bg-gray-800 p-2 rounded-xl"><IconSettings /></button>
+                                <button onClick={() => {signOut(auth); setView('player_tours');}} className="bg-red-900/50 text-red-400 p-2 rounded-xl">Logout</button>
+                            </div>
+                        </div>
+
+                        <form onSubmit={saveTour} className="bg-darkCard p-6 rounded-3xl mb-8 space-y-4">
+                            <h3 className="text-xl font-bold">{editingId ? 'Tour bearbeiten' : 'Neue Tour'}</h3>
+                            <input type="text" value={formData.name} onChange={e=>setFormData({...formData, name: e.target.value})} placeholder="Tour Name" className="w-full p-3 rounded-xl text-black" required />
+                            <textarea value={formData.description} onChange={e=>setFormData({...formData, description: e.target.value})} placeholder="Beschreibung" className="w-full p-3 rounded-xl text-black" />
+                            <div className="flex gap-2">
+                                <input type="text" value={formData.length} onChange={e=>setFormData({...formData, length: e.target.value})} placeholder="Länge (z.B. 5km)" className="w-1/3 p-3 rounded-xl text-black" />
+                                <input type="text" value={formData.duration} onChange={e=>setFormData({...formData, duration: e.target.value})} placeholder="Dauer (z.B. 2h)" className="w-1/3 p-3 rounded-xl text-black" />
+                                <input type="text" value={formData.elevation} onChange={e=>setFormData({...formData, elevation: e.target.value})} placeholder="Höhenmeter" className="w-1/3 p-3 rounded-xl text-black" />
+                            </div>
+                            <input type="text" value={formData.refreshments} onChange={e=>setFormData({...formData, refreshments: e.target.value})} placeholder="Einkehr" className="w-full p-3 rounded-xl text-black" />
+                            <input type="url" value={formData.imageUrl} onChange={e=>setFormData({...formData, imageUrl: e.target.value})} placeholder="Bild URL" className="w-full p-3 rounded-xl text-black" />
+                            <div className="flex gap-2">
+                                {editingId && <button type="button" onClick={()=>setEditingId(null)} className="bg-gray-700 px-4 rounded-xl">Abbrechen</button>}
+                                <button type="submit" className="flex-1 bg-iosBlue text-white font-bold py-3 rounded-xl">{editingId ? 'Speichern' : 'Hinzufügen'}</button>
+                            </div>
+                        </form>
+
+                        <div className="space-y-4">
+                            {tours.map(t => (
+                                <div key={t.id} className="bg-darkCard p-5 rounded-2xl flex justify-between items-center">
+                                    <div>
+                                        <h3 className="font-bold text-lg">{t.name}</h3>
+                                        <button onClick={()=> {setActiveTourId(t.id); setView('admin_stations');}} className="text-iosBlue text-sm mt-1">Stationen bearbeiten →</button>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => editTour(t)} className="p-2 bg-gray-800 rounded-lg"><IconEdit /></button>
+                                        <button onClick={() => {if(window.confirm('Löschen?')) deleteDoc(doc(db, 'tours', t.id));}} className="p-2 bg-red-900/30 text-red-500 rounded-lg"><IconTrash /></button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            };
+
+            const AdminStationsView = () => {
+                const activeTour = tours.find(t => t.id === activeTourId);
+                const tourStations = allStations.filter(s => s.tourId === activeTourId);
+                const [mode, setMode] = React.useState('station');
+                const [tourPath, setTourPath] = React.useState(activeTour?.path || []);
+                
+                const [editingId, setEditingId] = React.useState(null);
+                const [stData, setStData] = React.useState({ name: '', lat: '', lng: '', infoText: '', mediaUrl: '', hasQuiz: false, quiz: { question: '', answers: ['', '', '', ''], correctIndex: 0 }});
+                
+                const mapRef = React.useRef(null);
+                const polylineRef = React.useRef(null);
+                const markerRef = React.useRef(null);
+
+                const loadStationData = (st) => {
+                    setEditingId(st.id);
+                    setStData({
+                        name: st.name||'', lat: st.lat||'', lng: st.lng||'', infoText: st.infoText||'', mediaUrl: st.mediaUrl||'',
+                        hasQuiz: st.hasQuiz||false,
+                        quiz: st.quiz || { question: '', answers: ['', '', '', ''], correctIndex: 0 }
+                    });
+                    setMode('station');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    if(mapRef.current && st.lat && st.lng) {
+                        if(markerRef.current) mapRef.current.removeLayer(markerRef.current);
+                        markerRef.current = L.marker([st.lat, st.lng]).addTo(mapRef.current);
+                        mapRef.current.setView([st.lat, st.lng], 16);
+                    }
+                };
+
+                React.useEffect(() => {
+                    if (!mapRef.current) {
+                        const map = L.map('admin-map').setView([50.418, 9.757], 14); 
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                        
+                        map.on('click', function(e) {
+                            if (window.currentMode === 'route') {
+                                setTourPath(prev => {
+                                    const newPath = [...prev, {lat: e.latlng.lat, lng: e.latlng.lng}];
+                                    if(polylineRef.current) map.removeLayer(polylineRef.current);
+                                    polylineRef.current = L.polyline(newPath, {color: 'blue', weight: 4}).addTo(map);
+                                    return newPath;
+                                });
+                            } else {
+                                setStData(prev => ({...prev, lat: e.latlng.lat, lng: e.latlng.lng}));
+                                if(markerRef.current) map.removeLayer(markerRef.current);
+                                markerRef.current = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map);
+                            }
+                        });
+                        mapRef.current = map;
+                    }
+                }, []);
+
+                React.useEffect(() => { window.currentMode = mode; }, [mode]);
+
+                const saveStation = async (e) => {
+                    e.preventDefault();
+                    if(!stData.lat) return alert("Klick auf die Karte!");
+                    const payload = { ...stData, tourId: activeTourId };
+                    if (editingId) {
+                        await updateDoc(doc(db, 'stations', editingId), payload);
+                        showToast("Station aktualisiert!");
+                    } else {
+                        await addDoc(collection(db, 'stations'), { ...payload, order: Date.now() });
+                        showToast("Station hinzugefügt!");
+                    }
+                    setEditingId(null); setStData({ name: '', lat: '', lng: '', infoText: '', mediaUrl: '', hasQuiz: false, quiz: { question: '', answers: ['', '', '', ''], correctIndex: 0 }});
+                    if(markerRef.current && mapRef.current) mapRef.current.removeLayer(markerRef.current);
+                };
+
+                return (
+                    <div className="min-h-screen bg-gray-900 p-8 text-white pb-24">
+                        <button onClick={() => setView('admin_tours')} className="text-iosBlue mb-4 flex items-center"><IconChevronLeft /> Zurück</button>
+                        <h2 className="text-2xl font-bold mb-6">Management: {activeTour?.name}</h2>
+
+                        <div className="bg-darkCard p-6 rounded-3xl mb-8">
+                            <div className="flex gap-2 mb-4 bg-gray-800 p-1 rounded-xl">
+                                <button onClick={()=>setMode('station')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition ${mode === 'station' ? 'bg-iosBlue text-white' : 'text-gray-400'}`}>Stationen</button>
+                                <button onClick={()=>setMode('route')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition ${mode === 'route' ? 'bg-green-600 text-white' : 'text-gray-400'}`}>Route (Pfad)</button>
+                            </div>
+
+                            <div id="admin-map" className="h-64 w-full rounded-2xl mb-4 bg-gray-200"></div>
+                            
+                            {mode === 'route' && (
+                                <div className="space-y-3">
+                                    <button onClick={async () => { await updateDoc(doc(db, 'tours', activeTourId), { path: tourPath }); showToast("Route gespeichert!"); }} className="w-full bg-green-600 font-bold text-white py-3 rounded-xl">Wegverlauf speichern</button>
+                                </div>
+                            )}
+
+                            {mode === 'station' && (
+                                <form onSubmit={saveStation} className="space-y-4">
+                                    <h3 className="font-bold">{editingId ? 'Station bearbeiten' : 'Neue Station'}</h3>
+                                    <div className="flex gap-2">
+                                        <input type="text" value={stData.lat} readOnly placeholder="Lat" className="w-1/2 p-3 rounded-xl bg-gray-800 text-gray-400" />
+                                        <input type="text" value={stData.lng} readOnly placeholder="Lng" className="w-1/2 p-3 rounded-xl bg-gray-800 text-gray-400" />
+                                    </div>
+                                    <input type="text" value={stData.name} onChange={e=>setStData({...stData, name: e.target.value})} placeholder="Stationsname" className="w-full p-3 rounded-xl text-black" required />
+                                    
+                                    <label className="flex items-center space-x-2 text-sm"><input type="checkbox" checked={stData.hasQuiz} onChange={e=>setStData({...stData, hasQuiz: e.target.checked})} className="w-5 h-5 rounded" /><span>Quiz aktivieren</span></label>
+                                    
+                                    {stData.hasQuiz && (
+                                        <div className="p-4 bg-gray-800 rounded-xl space-y-2">
+                                            <input type="text" value={stData.quiz.question} onChange={e=>setStData({...stData, quiz: {...stData.quiz, question: e.target.value}})} placeholder="Frage" className="w-full p-2 rounded text-black" />
+                                            {stData.quiz.answers.map((ans, idx) => (
+                                                <div key={idx} className="flex gap-2">
+                                                    <input type="radio" name="corr" checked={stData.quiz.correctIndex === idx} onChange={()=>setStData({...stData, quiz: {...stData.quiz, correctIndex: idx}})} />
+                                                    <input type="text" value={ans} onChange={e=>{ const newAns = [...stData.quiz.answers]; newAns[idx] = e.target.value; setStData({...stData, quiz: {...stData.quiz, answers: newAns}}); }} placeholder={`Antwort ${idx+1}`} className="flex-1 p-2 rounded text-black" />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    <textarea value={stData.infoText} onChange={e=>setStData({...stData, infoText: e.target.value})} placeholder="Info Text (Auflösung)" className="w-full p-3 rounded-xl text-black h-24" />
+                                    <input type="url" value={stData.mediaUrl} onChange={e=>setStData({...stData, mediaUrl: e.target.value})} placeholder="Bild/Video URL" className="w-full p-3 rounded-xl text-black" />
+                                    
+                                    <div className="flex gap-2">
+                                        {editingId && <button type="button" onClick={()=>setEditingId(null)} className="bg-gray-700 px-4 rounded-xl">Abbrechen</button>}
+                                        <button type="submit" className="flex-1 bg-iosBlue text-white font-bold py-3 rounded-xl">{editingId ? 'Speichern' : 'Hinzufügen'}</button>
+                                    </div>
+                                </form>
+                            )}
+                        </div>
+
+                        <div className="space-y-3">
+                            {tourStations.map((st, idx) => (
+                                <div key={st.id} className="bg-darkCard p-4 rounded-2xl flex justify-between items-center">
+                                    <span className="font-bold">{idx+1}. {st.name}</span>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => loadStationData(st)} className="p-2 bg-gray-800 rounded-lg"><IconEdit /></button>
+                                        <button onClick={() => {if(window.confirm('Löschen?')) deleteDoc(doc(db, 'stations', st.id));}} className="p-2 bg-red-900/30 text-red-500 rounded-lg"><IconTrash /></button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            };
+
             const AdminSettingsView = () => {
                 const [video, setVideo] = React.useState(appSettings.bgVideoUrl || '');
                 const [imp, setImp] = React.useState(appSettings.impressumUrl || '');
@@ -380,103 +637,11 @@
                         <button onClick={() => setView('admin_tours')} className="text-iosBlue mb-6 flex items-center"><IconChevronLeft /> Zurück</button>
                         <h2 className="text-3xl font-bold mb-8">Globale Einstellungen</h2>
                         <form onSubmit={saveSettings} className="bg-darkCard p-6 rounded-3xl space-y-4">
-                            <div>
-                                <label className="block text-sm text-gray-400 mb-1">Startseiten Video (MP4 URL)</label>
-                                <input type="url" value={video} onChange={e=>setVideo(e.target.value)} className="w-full p-3 rounded-xl bg-gray-100 text-black" placeholder="https://..." />
-                            </div>
-                            <div>
-                                <label className="block text-sm text-gray-400 mb-1">Impressum (Link)</label>
-                                <input type="url" value={imp} onChange={e=>setImp(e.target.value)} className="w-full p-3 rounded-xl bg-gray-100 text-black" required />
-                            </div>
-                            <div>
-                                <label className="block text-sm text-gray-400 mb-1">Datenschutz (Link)</label>
-                                <input type="url" value={dat} onChange={e=>setDat(e.target.value)} className="w-full p-3 rounded-xl bg-gray-100 text-black" required />
-                            </div>
-                            <button type="submit" className="w-full bg-iosBlue text-white font-bold py-4 rounded-xl mt-4">Speichern</button>
+                            <div><label className="text-sm text-gray-400">Startseiten Video (MP4)</label><input type="url" value={video} onChange={e=>setVideo(e.target.value)} className="w-full p-3 rounded-xl text-black mt-1" /></div>
+                            <div><label className="text-sm text-gray-400">Impressum Link</label><input type="url" value={imp} onChange={e=>setImp(e.target.value)} className="w-full p-3 rounded-xl text-black mt-1" /></div>
+                            <div><label className="text-sm text-gray-400">Datenschutz Link</label><input type="url" value={dat} onChange={e=>setDat(e.target.value)} className="w-full p-3 rounded-xl text-black mt-1" /></div>
+                            <button type="submit" className="w-full bg-iosBlue py-4 rounded-xl font-bold">Speichern</button>
                         </form>
-                    </div>
-                );
-            };
-
-            // Login Screen (Dummy für Struktur)
-            const LoginView = () => {
-                // ... normaler Login ...
-                return <div className="min-h-screen bg-black flex flex-col justify-center items-center"><button onClick={()=>setView('admin_tours')} className="bg-iosBlue p-4 rounded-xl text-white">Bypass Login (Dev)</button></div>
-            }
-
-            // Admin Tours (Dummy für Struktur + Settings Button)
-            const AdminToursView = () => (
-                <div className="min-h-screen bg-gray-900 p-8 text-white">
-                    <div className="flex justify-between items-center mb-8">
-                        <h2 className="text-3xl font-bold">Touren</h2>
-                        <button onClick={() => setView('admin_settings')} className="bg-gray-800 p-2 rounded-xl"><IconSettings /></button>
-                    </div>
-                    {/* ... Rest der Touren Logik ... */}
-                    {tours.map(t => <button key={t.id} onClick={()=> {setActiveTourId(t.id); setView('admin_stations');}} className="block w-full bg-darkCard p-4 mb-4 rounded-xl text-left font-bold">{t.name} - Stationen & Route bearbeiten</button>)}
-                </div>
-            );
-
-            // Admin Stations (Mit Custom Routing Funktion!)
-            const AdminStationsView = () => {
-                const activeTour = tours.find(t => t.id === activeTourId);
-                const [mode, setMode] = React.useState('station'); // 'station' oder 'route'
-                const [tourPath, setTourPath] = React.useState(activeTour?.path || []);
-                const mapRef = React.useRef(null);
-                const polylineRef = React.useRef(null);
-
-                React.useEffect(() => {
-                    if (!mapRef.current) {
-                        const map = L.map('admin-map').setView([50.418, 9.757], 14); 
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-                        
-                        map.on('click', function(e) {
-                            if (window.currentMode === 'route') { // Hack für Event Listener Scope
-                                setTourPath(prev => {
-                                    const newPath = [...prev, {lat: e.latlng.lat, lng: e.latlng.lng}];
-                                    if(polylineRef.current) map.removeLayer(polylineRef.current);
-                                    polylineRef.current = L.polyline(newPath, {color: 'blue', weight: 4}).addTo(map);
-                                    return newPath;
-                                });
-                            } else {
-                                // Normale Logik für Station setzen (Formular füllen etc.)
-                                console.log("Station gesetzt:", e.latlng);
-                            }
-                        });
-                        mapRef.current = map;
-                    }
-                }, []);
-
-                // Halte Mode im window für den Leaflet Event Listener synchron
-                React.useEffect(() => { window.currentMode = mode; }, [mode]);
-
-                const saveRoute = async () => {
-                    await updateDoc(doc(db, 'tours', activeTourId), { path: tourPath });
-                    showToast("Exakte Route gespeichert!");
-                };
-
-                return (
-                    <div className="min-h-screen bg-gray-900 p-8 text-white pb-24">
-                        <button onClick={() => setView('admin_tours')} className="text-iosBlue mb-4 flex items-center"><IconChevronLeft /> Zurück</button>
-                        <h2 className="text-2xl font-bold mb-6">Management: {activeTour?.name}</h2>
-
-                        <div className="bg-darkCard p-6 rounded-3xl mb-8">
-                            <div className="flex gap-2 mb-4 bg-gray-800 p-1 rounded-xl">
-                                <button onClick={()=>setMode('station')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition ${mode === 'station' ? 'bg-iosBlue text-white' : 'text-gray-400'}`}>1. Stationen setzen</button>
-                                <button onClick={()=>setMode('route')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition ${mode === 'route' ? 'bg-green-600 text-white' : 'text-gray-400'}`}>2. Route zeichnen</button>
-                            </div>
-
-                            <div id="admin-map" className="h-64 w-full rounded-2xl mb-4 bg-gray-200 cursor-crosshair"></div>
-                            
-                            {mode === 'route' && (
-                                <div className="space-y-3 bg-gray-800/50 p-4 rounded-xl border border-green-500/30">
-                                    <p className="text-sm text-green-400 font-medium">Klicke auf die Karte, um den exakten Weg einzuzeichnen (z.B. über Feldwege).</p>
-                                    <div className="flex gap-2">
-                                        <button onClick={()=>{setTourPath(prev=>prev.slice(0,-1)); if(polylineRef.current) polylineRef.current.setLatLngs(tourPath.slice(0,-1));}} className="bg-gray-700 px-4 py-3 rounded-xl flex items-center justify-center"><IconUndo /></button>
-                                        <button onClick={saveRoute} className="flex-1 bg-green-600 font-bold text-white py-3 rounded-xl">Wegverlauf speichern</button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
                     </div>
                 );
             };
