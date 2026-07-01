@@ -1,1 +1,0 @@
-# Thalau-Dorf-Rallye
