@@ -26,11 +26,12 @@
         body { background-color: #000000; color: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; margin: 0; padding: 0; }
         ::-webkit-scrollbar { width: 0px; background: transparent; }
         
-        .timeline-line { position: absolute; left: 50%; transform: translateX(-50%); width: 2px; background: #333; top: 0; bottom: 0; z-index: 0; }
+        /* Die Linie geht nun unendlich weit nach oben */
+        .timeline-line { position: absolute; left: 50%; transform: translateX(-50%); width: 2px; background: #333; top: -100vh; bottom: 0; z-index: 0; }
         .timeline-item { width: 100%; display: flex; align-items: center; position: relative; margin-bottom: 40px; }
         .timeline-item.left { justify-content: flex-start; }
         .timeline-item.right { justify-content: flex-end; }
-        .timeline-card-wrapper { width: 45%; }
+        .timeline-card-wrapper { width: 45%; cursor: pointer; }
         
         .leaflet-container { z-index: 1 !important; border-radius: 12px; }
         .leaflet-control-attribution { display: none; }
@@ -69,7 +70,6 @@
         const IconClock = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>;
         const IconRuler = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.3 15.3l-13.4 13.4a2 2 0 0 1-2.8 0l-2.8-2.8a2 2 0 0 1 0-2.8l13.4-13.4a2 2 0 0 1 2.8 0l2.8 2.8a2 2 0 0 1 0 2.8z"></path><path d="M14.5 5.5l4 4"></path><path d="M11.5 8.5l4 4"></path><path d="M8.5 11.5l4 4"></path><path d="M5.5 14.5l4 4"></path></svg>;
         const IconMountain = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3l4 8 5-5 5 15H2L8 3z"></path></svg>;
-        const IconCoffee = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>;
         const IconEdit = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>;
         const IconTrash = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>;
 
@@ -105,8 +105,9 @@
             // THALAU ENTDECKEN (STARTSEITE)
             // --------------------------------------------------------
             const PlayerToursView = () => (
-                <div className="min-h-screen bg-black text-white flex flex-col relative overflow-hidden">
-                    <header className="relative w-full h-[45vh] bg-gray-900 rounded-b-[40px] overflow-hidden shadow-2xl z-10 flex-shrink-0">
+                <div className="min-h-screen bg-black text-white relative">
+                    {/* Komplett fixierter Header-Bereich im Hintergrund */}
+                    <div className="fixed top-0 left-0 w-full h-[45vh] bg-gray-900 z-0">
                         {appSettings.bgVideoUrl ? (
                             <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover opacity-60">
                                 <source src={appSettings.bgVideoUrl} type="video/mp4" />
@@ -115,51 +116,52 @@
                             <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Luftbild_Thalau.JPG/1920px-Luftbild_Thalau.JPG" className="absolute inset-0 w-full h-full object-cover opacity-60" alt="Thalau" />
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30"></div>
-                        
-                        {/* Die Überschrift wieder mit Kachel-Effekt */}
                         <div className="absolute bottom-10 left-0 w-full px-6 flex justify-center">
                             <div className="bg-black/40 backdrop-blur-md border border-white/10 px-8 py-4 rounded-[2rem] shadow-xl text-center">
                                 <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white text-shadow mb-1">Thalau Entdecken</h1>
                                 <p className="text-gray-300 font-medium text-sm">Wähle deine Route</p>
                             </div>
                         </div>
-                    </header>
-
-                    {/* Touren Liste flex-grow drückt den Footer nach unten */}
-                    <div className="px-6 mt-8 space-y-6 relative z-10 max-w-md mx-auto w-full flex-grow">
-                        {tours.map(tour => (
-                            <div key={tour.id} onClick={() => { setActiveTourId(tour.id); setView('player_game'); }} 
-                                 className="relative rounded-[28px] overflow-hidden cursor-pointer transform transition-all active:scale-[0.98] shadow-2xl border border-gray-800 bg-darkCard group">
-                                <div className="h-40 w-full bg-cover bg-center" style={{ backgroundImage: `url(${tour.imageUrl || 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Luftbild_Thalau.JPG/1920px-Luftbild_Thalau.JPG'})` }}></div>
-                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent"></div>
-                                <div className="absolute bottom-0 left-0 w-full p-5">
-                                    <h2 className="text-xl font-bold text-white mb-1">{tour.name}</h2>
-                                    {tour.description && <p className="text-gray-400 text-xs mb-3 line-clamp-2 leading-relaxed">{tour.description}</p>}
-                                    <div className="flex flex-wrap gap-2">
-                                        {tour.duration && <span className="flex items-center gap-1 bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-lg text-xs font-medium text-gray-200"><IconClock /> {tour.duration}</span>}
-                                        {tour.length && <span className="flex items-center gap-1 bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-lg text-xs font-medium text-gray-200"><IconRuler /> {tour.length}</span>}
-                                        {tour.elevation && <span className="flex items-center gap-1 bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-lg text-xs font-medium text-gray-200"><IconMountain /> {tour.elevation}</span>}
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
                     </div>
 
-                    {/* Statischer Footer (Immer ganz unten am Dokumenten-Ende) */}
-                    <footer className="w-full mt-12 pb-8 pt-6 border-t border-white/10 text-center text-xs text-gray-500 flex flex-col items-center gap-3">
-                        <button onClick={() => setView('login')} className="font-medium hover:text-white transition bg-gray-900 px-4 py-2 rounded-full">Admin Login</button>
-                        <div className="flex gap-4 mt-2">
-                            {appSettings.impressumUrl && <a href={appSettings.impressumUrl} target="_blank" className="hover:text-gray-300 underline">Impressum</a>}
-                            {appSettings.datenschutzUrl && <a href={appSettings.datenschutzUrl} target="_blank" className="hover:text-gray-300 underline">Datenschutz</a>}
+                    {/* Scrollbarer Bereich für Touren, z-10 damit er über dem Header liegt, startet nach 45vh */}
+                    <div className="relative z-10 w-full pt-[45vh] min-h-screen flex flex-col">
+                        <div className="bg-black flex-grow rounded-t-[40px] shadow-[0_-10px_40px_rgba(0,0,0,0.8)] -mt-6 pt-10 pb-8">
+                            <div className="px-6 space-y-6 max-w-md mx-auto w-full">
+                                {tours.map(tour => (
+                                    <div key={tour.id} onClick={() => { setActiveTourId(tour.id); setView('player_game'); }} 
+                                         className="relative rounded-[28px] overflow-hidden cursor-pointer transform transition-all active:scale-[0.98] shadow-2xl border border-gray-800 bg-darkCard group">
+                                        <div className="h-40 w-full bg-cover bg-center" style={{ backgroundImage: `url(${tour.imageUrl || 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Luftbild_Thalau.JPG/1920px-Luftbild_Thalau.JPG'})` }}></div>
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent"></div>
+                                        <div className="absolute bottom-0 left-0 w-full p-5">
+                                            <h2 className="text-xl font-bold text-white mb-1">{tour.name}</h2>
+                                            {tour.description && <p className="text-gray-400 text-xs mb-3 line-clamp-2 leading-relaxed">{tour.description}</p>}
+                                            <div className="flex flex-wrap gap-2">
+                                                {tour.duration && <span className="flex items-center gap-1 bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-lg text-xs font-medium text-gray-200"><IconClock /> {tour.duration}</span>}
+                                                {tour.length && <span className="flex items-center gap-1 bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-lg text-xs font-medium text-gray-200"><IconRuler /> {tour.length}</span>}
+                                                {tour.elevation && <span className="flex items-center gap-1 bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-lg text-xs font-medium text-gray-200"><IconMountain /> {tour.elevation}</span>}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                    </footer>
+
+                        <footer className="w-full pb-8 pt-6 border-t border-white/10 bg-black text-center text-xs text-gray-500 flex flex-col items-center gap-3">
+                            <button onClick={() => setView('login')} className="font-medium hover:text-white transition bg-gray-900 px-4 py-2 rounded-full">Admin Login</button>
+                            <div className="flex gap-4 mt-2">
+                                {appSettings.impressumUrl && <a href={appSettings.impressumUrl} target="_blank" className="hover:text-gray-300 underline">Impressum</a>}
+                                {appSettings.datenschutzUrl && <a href={appSettings.datenschutzUrl} target="_blank" className="hover:text-gray-300 underline">Datenschutz</a>}
+                            </div>
+                        </footer>
+                    </div>
                 </div>
             );
 
             // --------------------------------------------------------
             // KOMPONENTE: MINIMAP FÜR POP-UP
             // --------------------------------------------------------
-            const MiniMap = ({ targetLat, targetLng, userLoc, tourPath }) => {
+            const MiniMap = ({ targetLat, targetLng, userLoc, tourPath, expanded }) => {
                 const mapRef = React.useRef(null);
                 const containerRef = React.useRef(null);
                 const userMarkerRef = React.useRef(null);
@@ -184,7 +186,7 @@
                         }
 
                         const ro = new ResizeObserver(() => {
-                            if (mapRef.current) setTimeout(() => mapRef.current.invalidateSize(), 50);
+                            if (mapRef.current) mapRef.current.invalidateSize();
                         });
                         ro.observe(containerRef.current);
                         return () => ro.disconnect();
@@ -194,6 +196,13 @@
                         if(targetLat && guideLineRef.current) guideLineRef.current.setLatLngs([[userLoc.lat, userLoc.lng], [targetLat, targetLng]]);
                     }
                 }, [targetLat, targetLng, userLoc, tourPath]);
+
+                // Wenn sich expanded ändert, triggere nochmal invalidateSize nach der CSS Animation
+                React.useEffect(() => {
+                    if (mapRef.current) {
+                        setTimeout(() => mapRef.current.invalidateSize(), 300);
+                    }
+                }, [expanded]);
 
                 return <div ref={containerRef} className="w-full h-full rounded-2xl bg-gray-800 z-0"></div>;
             };
@@ -205,6 +214,11 @@
                 const [userLoc, setUserLoc] = React.useState(null);
                 const [currentStationIndex, setCurrentStationIndex] = React.useState(0);
                 const [score, setScore] = React.useState(0);
+                
+                // Neue Zustände für Anreise
+                const [tourStarted, setTourStarted] = React.useState(false);
+                const [showRules, setShowRules] = React.useState(false);
+
                 const [sheetState, setSheetState] = React.useState('navigating'); 
                 const [sheetMode, setSheetMode] = React.useState('quiz'); 
                 const [sheetExpanded, setSheetExpanded] = React.useState(false);
@@ -232,14 +246,16 @@
                 };
 
                 const currentDistance = currentStation && userLoc ? getDistance(userLoc.lat, userLoc.lng, currentStation.lat, currentStation.lng) : null;
+                const distanceToStart = activeTour?.parkingLat && userLoc ? getDistance(userLoc.lat, userLoc.lng, activeTour.parkingLat, activeTour.parkingLng) : null;
+                const isNearStart = distanceToStart !== null && distanceToStart < 200;
 
                 React.useEffect(() => {
-                    if (sheetState === 'navigating' && currentDistance !== null && currentDistance <= 30) {
+                    if (tourStarted && sheetState === 'navigating' && currentDistance !== null && currentDistance <= 30) {
                         setSheetState('at_station');
                         setSheetMode(currentStation.hasQuiz ? 'quiz' : 'info');
                         setSheetExpanded(true);
                     }
-                }, [currentDistance, sheetState, currentStation]);
+                }, [currentDistance, sheetState, currentStation, tourStarted]);
 
                 const handleQuizAnswer = (selectedIndex) => {
                     if (selectedIndex === currentStation.quiz?.correctIndex) setScore(s => s + 100);
@@ -257,78 +273,136 @@
                     }
                 };
 
-                // Die Berechnung für den dynamischen Platzhalter am Ende der Zeitachse
+                const handleStationClick = (index) => {
+                    if (index === currentStationIndex) {
+                        setSheetState(prev => prev === 'hidden' ? 'navigating' : 'hidden');
+                    }
+                };
+
                 const getSpacerHeight = () => {
                     if (sheetState === 'hidden') return '20px';
-                    return sheetExpanded ? '80vh' : '40vh'; // 40vh ist ca die Höhe des kleinen Popups
+                    return sheetExpanded ? '75vh' : '40vh'; 
                 };
 
                 return (
                     <div className="min-h-screen bg-black">
                         
-                        {/* HEADER - Wieder wie im Original (ca 30vh), GPS Button ist zurück, Zurück-Button iOS-Style */}
-                        <header className="fixed top-0 left-0 w-full h-[30vh] z-50 overflow-hidden bg-black">
+                        {/* HEADER - Höhe auf 25vh reduziert */}
+                        <header className="fixed top-0 left-0 w-full h-[25vh] z-50 overflow-hidden bg-black shadow-lg">
                             <img src={activeTour?.imageUrl || "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Luftbild_Thalau.JPG/1920px-Luftbild_Thalau.JPG"} 
                                  className="absolute inset-0 w-full h-full object-cover" alt="Hintergrund" />
                             <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/50 to-[#000000]"></div>
                             
-                            {/* Zurück-Button perfekt für Notch/Safe-Area platziert */}
-                            <button onClick={()=>setView('player_tours')} className="absolute top-10 left-4 w-10 h-10 flex items-center justify-center bg-black/30 backdrop-blur-md rounded-full text-white shadow-lg z-50 active:scale-90 transition-transform">
+                            {/* Alles mit pt-12 leicht nach unten geschoben */}
+                            <button onClick={()=>setView('player_tours')} className="absolute top-12 left-4 w-10 h-10 flex items-center justify-center bg-black/30 backdrop-blur-md rounded-full text-white shadow-lg z-50 active:scale-90 transition-transform">
                                 <IconChevronLeft />
                             </button>
 
-                            <div className="absolute inset-0 flex flex-col items-center justify-center px-4 pt-4">
+                            <div className="absolute inset-0 flex flex-col items-center justify-center px-4 pt-12">
                                 <h1 className="text-3xl font-bold text-white text-center leading-tight text-shadow">
                                     {activeTour?.name || "Historische Tour"}
                                 </h1>
-                                {/* GPS Badge ist wieder da */}
                                 <div className={`mt-3 px-4 py-1.5 rounded-full border text-xs font-bold uppercase tracking-widest backdrop-blur-sm ${userLoc ? 'border-green-500 bg-green-900/40 text-green-400' : 'border-orange-500 bg-orange-900/40 text-orange-400'}`}>
                                     {userLoc ? "GPS AKTIV" : "SUCHE GPS..."}
                                 </div>
                             </div>
                         </header>
 
-                        <div className="fade-mask" style={{ top: '30vh' }}></div>
+                        <div className="fade-mask"></div>
 
-                        <main className="relative z-10 px-4" style={{ paddingTop: '32vh' }}>
-                            <div className="relative max-w-md mx-auto pt-4">
-                                <div className="timeline-line"></div>
-
-                                {tourStations.map((station, index) => {
-                                    const isPast = index < currentStationIndex;
-                                    const isCurrent = index === currentStationIndex;
-                                    const isFuture = index > currentStationIndex;
-                                    const isLeft = index % 2 === 0;
-
-                                    return (
-                                        <div key={station.id} className={`timeline-item ${isLeft ? 'left' : 'right'}`}>
-                                            <div className="absolute left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-black border-2 border-gray-800 flex items-center justify-center z-10 shadow-lg">
-                                                {isPast ? <div className="bg-green-500 w-full h-full rounded-full flex items-center justify-center"><IconCheck /></div> : <IconLock />}
+                        <main className="relative z-10 px-4" style={{ paddingTop: '27vh' }}>
+                            {/* Anreise Ansicht */}
+                            {!tourStarted ? (
+                                <div className="max-w-md mx-auto pt-6 text-center">
+                                    <div className="bg-darkCard p-6 rounded-3xl shadow-2xl border border-white/10 text-left mb-6">
+                                        <h2 className="text-2xl font-bold text-white mb-4">Tour Übersicht</h2>
+                                        <div className="space-y-3 mb-6">
+                                            <div className="flex justify-between border-b border-gray-800 pb-2"><span className="text-gray-400">Länge</span><span className="font-medium text-white">{activeTour?.length || '-'}</span></div>
+                                            <div className="flex justify-between border-b border-gray-800 pb-2"><span className="text-gray-400">Dauer</span><span className="font-medium text-white">{activeTour?.duration || '-'}</span></div>
+                                            <div className="flex justify-between border-b border-gray-800 pb-2"><span className="text-gray-400">Stationen</span><span className="font-medium text-white">{tourStations.length}</span></div>
+                                            <div className="flex justify-between"><span className="text-gray-400">Einkehr</span><span className="font-medium text-white">{activeTour?.refreshments || '-'}</span></div>
+                                        </div>
+                                        
+                                        {activeTour?.parkingLat ? (
+                                            <div>
+                                                {isNearStart ? (
+                                                    <button onClick={() => setShowRules(true)} className="w-full bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-transform text-lg">
+                                                        Tour Starten
+                                                    </button>
+                                                ) : (
+                                                    <div>
+                                                        <a href={`https://www.google.com/maps/dir/?api=1&destination=${activeTour.parkingLat},${activeTour.parkingLng}`} target="_blank" className="w-full bg-iosBlue flex justify-center text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-transform text-lg mb-2">
+                                                            Navigation zum Start
+                                                        </a>
+                                                        <button onClick={() => setShowRules(true)} className="w-full text-gray-500 text-xs underline mt-2">
+                                                            (Fallback) Trotzdem starten
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
+                                        ) : (
+                                            <button onClick={() => setShowRules(true)} className="w-full bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-transform text-lg">
+                                                Tour Starten
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                /* Normale Zeitleiste */
+                                <div className="relative max-w-md mx-auto pt-4">
+                                    <div className="timeline-line"></div>
 
-                                            <div className="timeline-card-wrapper">
-                                                <div className={`p-4 flex flex-col items-center text-center shadow-2xl rounded-2xl border transition-colors ${isCurrent ? 'bg-darkCard border-iosBlue/50' : 'bg-[#121212] border-white/5'}`}>
-                                                    <h2 className="text-white font-bold mb-1 text-base break-words w-full">
-                                                        {isFuture ? `Station ${index + 1}` : station.name}
-                                                    </h2>
-                                                    {/* Meter-Anzeige aus Kachel entfernt (jetzt im Pop-up) */}
-                                                    <p className="text-gray-500 text-[12px] leading-snug mt-1">
-                                                        {isPast ? "Erfolgreich abgeschlossen." : isCurrent ? "Gehe zum Ort, um das Rätsel zu öffnen." : "Noch gesperrt."}
-                                                    </p>
+                                    {tourStations.map((station, index) => {
+                                        const isPast = index < currentStationIndex;
+                                        const isCurrent = index === currentStationIndex;
+                                        const isFuture = index > currentStationIndex;
+                                        const isLeft = index % 2 === 0;
+
+                                        return (
+                                            <div key={station.id} className={`timeline-item ${isLeft ? 'left' : 'right'}`}>
+                                                <div className="absolute left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-black border-2 border-gray-800 flex items-center justify-center z-10 shadow-lg">
+                                                    {isPast ? <div className="bg-green-500 w-full h-full rounded-full flex items-center justify-center"><IconCheck /></div> : <IconLock />}
+                                                </div>
+
+                                                <div className="timeline-card-wrapper" onClick={() => handleStationClick(index)}>
+                                                    <div className={`p-4 flex flex-col items-center text-center shadow-2xl rounded-2xl border transition-colors ${isCurrent ? 'bg-darkCard border-iosBlue/50' : 'bg-[#121212] border-white/5'}`}>
+                                                        <h2 className="text-white font-bold mb-1 text-base break-words w-full">
+                                                            {isFuture ? `Station ${index + 1}` : station.name}
+                                                        </h2>
+                                                        <p className="text-gray-500 text-[12px] leading-snug mt-1">
+                                                            {isPast ? "Erfolgreich abgeschlossen." : isCurrent ? "Gehe zum Ort, um das Rätsel zu öffnen." : "Noch gesperrt."}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    );
-                                })}
-
-                                {/* Unsichtbarer Spacer, der sich dynamisch dem Pop-up anpasst. Limitiert den Scroll-Bereich exakt! */}
-                                <div className="w-full transition-all duration-300" style={{ height: getSpacerHeight() }}></div>
-                            </div>
+                                        );
+                                    })}
+                                    <div className="w-full transition-all duration-300" style={{ height: getSpacerHeight() }}></div>
+                                </div>
+                            )}
                         </main>
 
-                        {/* BOTTOM SHEET */}
-                        {sheetState !== 'hidden' && (
-                            <div className={`fixed bottom-0 left-0 w-full z-[100] bg-[#1C1C1E] border-t border-gray-800 rounded-t-[32px] shadow-[0_-20px_50px_rgba(0,0,0,0.8)] sheet-transition flex flex-col ${sheetExpanded ? 'h-[80vh]' : 'h-auto pb-8'}`}>
+                        {/* Regeln Pop-Up (Vor dem Start) */}
+                        {showRules && !tourStarted && (
+                             <div className="fixed bottom-0 left-0 w-full z-[150] bg-[#1C1C1E] border-t border-gray-800 rounded-t-[32px] shadow-[0_-20px_50px_rgba(0,0,0,0.8)] sheet-transition h-[75vh] flex flex-col">
+                                <div className="w-full pt-4 pb-2 flex justify-center flex-shrink-0">
+                                    <div className="w-14 h-1.5 bg-gray-600 rounded-full"></div>
+                                </div>
+                                <div className="px-6 flex-1 overflow-y-auto pb-6">
+                                    <h3 className="text-2xl font-bold text-white mb-4">Regeln & Infos</h3>
+                                    <div className="bg-gray-800/50 p-4 rounded-xl text-gray-300 leading-relaxed mb-6 whitespace-pre-wrap">
+                                        {activeTour?.rulesText || "Viel Spaß bei der Tour! Bitte achtet auf den Verkehr und nehmt Rücksicht auf die Natur."}
+                                    </div>
+                                    <button onClick={() => { setShowRules(false); setTourStarted(true); setSheetState('navigating'); }} className="w-full bg-iosBlue text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-transform text-lg">
+                                        Wirklich Starten
+                                    </button>
+                                </div>
+                             </div>
+                        )}
+
+                        {/* BOTTOM SHEET WÄHREND DER TOUR - Max Höhe auf 75vh begrenzt */}
+                        {tourStarted && sheetState !== 'hidden' && (
+                            <div className={`fixed bottom-0 left-0 w-full z-[100] bg-[#1C1C1E] border-t border-gray-800 rounded-t-[32px] shadow-[0_-20px_50px_rgba(0,0,0,0.8)] sheet-transition flex flex-col ${sheetExpanded ? 'h-[75vh]' : 'h-auto pb-8'}`}>
                                 <div className="w-full pt-3 pb-3 flex justify-center cursor-pointer flex-shrink-0" onClick={() => setSheetExpanded(!sheetExpanded)}>
                                     <div className="w-14 h-1.5 bg-gray-600 rounded-full"></div>
                                 </div>
@@ -336,13 +410,11 @@
                                 <div className="px-6 flex-1 overflow-y-auto">
                                     {sheetState === 'navigating' && currentStation && (
                                         <div className="h-full flex flex-col pb-6">
-                                            {/* Station Name & Meter Anzeige jetzt wunderschön vereint im Pop-up */}
                                             <div className="flex justify-between items-start mb-4">
                                                 <div className="flex-1 pr-4">
                                                     <p className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-1">Nächstes Ziel</p>
                                                     <h3 className="text-xl font-bold text-white leading-tight">{currentStation.name}</h3>
                                                 </div>
-                                                {/* Meter Anzeige prominent */}
                                                 {currentDistance !== null && (
                                                     <div className="bg-iosBlue text-white font-bold text-sm px-3 py-1.5 rounded-xl shadow-lg whitespace-nowrap">
                                                         {Math.round(currentDistance)} m
@@ -350,9 +422,8 @@
                                                 )}
                                             </div>
                                             
-                                            {/* Minikarte füllt den Platz deutlich besser aus (min-h-[160px]) */}
                                             <div className={`w-full bg-gray-800 rounded-2xl transition-all duration-300 relative ${sheetExpanded ? 'flex-1 min-h-[300px]' : 'h-40'}`}>
-                                                <MiniMap targetLat={currentStation.lat} targetLng={currentStation.lng} userLoc={userLoc} tourPath={activeTour?.path} />
+                                                <MiniMap targetLat={currentStation.lat} targetLng={currentStation.lng} userLoc={userLoc} tourPath={activeTour?.path} expanded={sheetExpanded} />
                                                 {!sheetExpanded && <div className="absolute inset-0 bg-black/10 flex items-center justify-center pointer-events-none rounded-2xl"><span className="bg-black/60 text-white text-xs px-3 py-1 rounded-full backdrop-blur-md">Tippen für große Karte</span></div>}
                                             </div>
                                         </div>
@@ -395,7 +466,7 @@
             };
 
             // --------------------------------------------------------
-            // ADMIN BEREICH (VOLLSTÄNDIG MIT EDIT & DATEN-PREFILL)
+            // ADMIN BEREICH (Angepasst für Parkplatz & Regeln)
             // --------------------------------------------------------
             const LoginView = () => {
                 const [email, setEmail] = React.useState('');
@@ -420,11 +491,11 @@
 
             const AdminToursView = () => {
                 const [editingId, setEditingId] = React.useState(null);
-                const [formData, setFormData] = React.useState({ name: '', description: '', duration: '', length: '', elevation: '', refreshments: '', imageUrl: '' });
+                const [formData, setFormData] = React.useState({ name: '', description: '', duration: '', length: '', elevation: '', refreshments: '', imageUrl: '', parkingLat: '', parkingLng: '', rulesText: '' });
 
                 const editTour = (tour) => {
                     setEditingId(tour.id);
-                    setFormData({ name: tour.name||'', description: tour.description||'', duration: tour.duration||'', length: tour.length||'', elevation: tour.elevation||'', refreshments: tour.refreshments||'', imageUrl: tour.imageUrl||'' });
+                    setFormData({ name: tour.name||'', description: tour.description||'', duration: tour.duration||'', length: tour.length||'', elevation: tour.elevation||'', refreshments: tour.refreshments||'', imageUrl: tour.imageUrl||'', parkingLat: tour.parkingLat||'', parkingLng: tour.parkingLng||'', rulesText: tour.rulesText||'' });
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 };
 
@@ -437,7 +508,7 @@
                         await addDoc(collection(db, 'tours'), { ...formData, createdAt: Date.now() });
                         showToast("Tour erstellt!");
                     }
-                    setEditingId(null); setFormData({ name: '', description: '', duration: '', length: '', elevation: '', refreshments: '', imageUrl: '' });
+                    setEditingId(null); setFormData({ name: '', description: '', duration: '', length: '', elevation: '', refreshments: '', imageUrl: '', parkingLat: '', parkingLng: '', rulesText: '' });
                 };
 
                 return (
@@ -461,7 +532,16 @@
                             </div>
                             <input type="text" value={formData.refreshments} onChange={e=>setFormData({...formData, refreshments: e.target.value})} placeholder="Einkehr" className="w-full p-3 rounded-xl text-black" />
                             <input type="url" value={formData.imageUrl} onChange={e=>setFormData({...formData, imageUrl: e.target.value})} placeholder="Bild URL" className="w-full p-3 rounded-xl text-black" />
+                            
+                            <hr className="border-gray-700 my-4"/>
+                            <h4 className="font-bold text-gray-300">Anreise & Start</h4>
                             <div className="flex gap-2">
+                                <input type="text" value={formData.parkingLat} onChange={e=>setFormData({...formData, parkingLat: e.target.value})} placeholder="Parkplatz Lat" className="w-1/2 p-3 rounded-xl text-black" />
+                                <input type="text" value={formData.parkingLng} onChange={e=>setFormData({...formData, parkingLng: e.target.value})} placeholder="Parkplatz Lng" className="w-1/2 p-3 rounded-xl text-black" />
+                            </div>
+                            <textarea value={formData.rulesText} onChange={e=>setFormData({...formData, rulesText: e.target.value})} placeholder="Regeln & Infos für Pop-Up vor dem Start" className="w-full p-3 rounded-xl text-black h-24" />
+
+                            <div className="flex gap-2 pt-2">
                                 {editingId && <button type="button" onClick={()=>setEditingId(null)} className="bg-gray-700 px-4 rounded-xl">Abbrechen</button>}
                                 <button type="submit" className="flex-1 bg-iosBlue text-white font-bold py-3 rounded-xl">{editingId ? 'Speichern' : 'Hinzufügen'}</button>
                             </div>
