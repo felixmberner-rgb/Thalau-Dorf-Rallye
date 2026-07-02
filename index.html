@@ -16,6 +16,7 @@
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -25,7 +26,6 @@
         body { background-color: #000000; color: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; margin: 0; padding: 0; }
         ::-webkit-scrollbar { width: 0px; background: transparent; }
         
-        /* Die Linie geht nun unendlich weit nach oben */
         .timeline-line { position: absolute; left: 50%; transform: translateX(-50%); width: 2px; background: #333; top: -100vh; bottom: 0; z-index: 0; }
         .timeline-item { width: 100%; display: flex; align-items: center; position: relative; margin-bottom: 40px; }
         .timeline-item.left { justify-content: flex-start; }
@@ -39,7 +39,6 @@
         .sheet-transition { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), height 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
         .fade-mask { position: fixed; top: 25vh; left: 0; width: 100%; height: 50px; background: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%); z-index: 40; pointer-events: none; }
         
-        /* Slider Styling */
         input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 24px; width: 24px; border-radius: 50%; background: #0A84FF; cursor: pointer; margin-top: -10px; box-shadow: 0 2px 6px rgba(0,0,0,0.5); }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 6px; cursor: pointer; background: #333; border-radius: 3px; }
@@ -81,21 +80,22 @@
         const IconTrash = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>;
 
         function App() {
-            const [view, setView] = React.useState('loading'); 
-            const [tours, setTours] = React.useState([]);
+            // Caching: Direkt den State aus dem LocalStorage holen für sofortigen Start!
+            const [view, setView] = React.useState('player_tours'); 
+            const [tours, setTours] = React.useState(() => {
+                const cached = localStorage.getItem('cached_tours');
+                return cached ? JSON.parse(cached) : [];
+            });
             const [allStations, setAllStations] = React.useState([]);
             const [activeTourId, setActiveTourId] = React.useState(null);
             const [adminUser, setAdminUser] = React.useState(null);
-            const [appSettings, setAppSettings] = React.useState({ bgVideoUrl: '', impressumUrl: '', datenschutzUrl: '', quizInfo_choice: '', quizInfo_number: '', quizInfo_slider: '', quizInfo_order: '' });
+            const [appSettings, setAppSettings] = React.useState({ bgVideoUrl: '', impressumUrl: '', datenschutzUrl: '', quizInfo_choice: '', quizInfo_number: '', quizInfo_slider: '', quizInfo_order: '', pwaPromptIos: '', pwaPromptAndroid: '', finalText: '', donationUrl: '' });
             const [toast, setToast] = React.useState(null);
             const [isDesktop, setIsDesktop] = React.useState(false);
-            
-            // NEU: Status für die "Als App installieren"-Anleitung
             const [showPwaPrompt, setShowPwaPrompt] = React.useState(false);
 
             const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
-            // Helper to get YouTube Video ID
             const getYouTubeId = (url) => {
                 const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
                 const match = url?.match(regExp);
@@ -112,22 +112,27 @@
             React.useEffect(() => {
                 const unsubAuth = onAuthStateChanged(auth, (user) => {
                     setAdminUser(user);
-                    if (view === 'loading') setView('player_tours');
                 });
                 return () => unsubAuth();
-            }, [view]);
+            }, []);
             
-            // NEU: Prüfen, ob die App als WebApp installiert ist (Standalone)
+            // PWA Check: Nur auf Mobilgeräten anzeigen!
             React.useEffect(() => {
                 const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
                 const hasSeenPrompt = localStorage.getItem('pwaPromptSeen');
-                if (!isStandalone && !hasSeenPrompt && !isDesktop) {
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                
+                if (!isStandalone && !hasSeenPrompt && isMobile) {
                     setShowPwaPrompt(true);
                 }
-            }, [isDesktop]);
+            }, []);
 
             React.useEffect(() => {
-                const unsubTours = onSnapshot(collection(db, 'tours'), snap => setTours(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+                const unsubTours = onSnapshot(collection(db, 'tours'), snap => {
+                    const fetchedTours = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    setTours(fetchedTours);
+                    localStorage.setItem('cached_tours', JSON.stringify(fetchedTours));
+                });
                 const unsubStations = onSnapshot(collection(db, 'stations'), snap => setAllStations(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => a.order - b.order)));
                 const unsubSettings = onSnapshot(doc(db, 'settings', 'global'), docSnap => {
                     if (docSnap.exists()) setAppSettings(docSnap.data());
@@ -135,7 +140,6 @@
                 return () => { unsubTours(); unsubStations(); unsubSettings(); };
             }, []);
 
-            // Helper to calculate distance
             const getDistance = (lat1, lon1, lat2, lon2) => {
                 if(!lat1 || !lon1 || !lat2 || !lon2) return null;
                 const R = 6371e3; const p1 = lat1 * Math.PI/180; const p2 = lat2 * Math.PI/180;
@@ -144,7 +148,6 @@
                 return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
             };
             
-            // NEU: PWA Pop-Up Komponente
             const PwaPromptModal = () => {
                 if (!showPwaPrompt) return null;
                 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -168,9 +171,6 @@
                 );
             };
 
-            // --------------------------------------------------------
-            // DESKTOP VIEW (QR CODE)
-            // --------------------------------------------------------
             const DesktopView = () => {
                 const currentUrl = encodeURIComponent(window.location.href.split('?')[0]);
                 const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${currentUrl}`;
@@ -180,15 +180,11 @@
                         <div className="bg-darkCard p-10 rounded-3xl max-w-md w-full shadow-2xl border border-gray-800 flex flex-col items-center">
                             <h1 className="text-3xl font-bold mb-2">Dorfrallye Thalau</h1>
                             <p className="text-gray-400 mb-8">Bitte öffne diese Seite auf deinem Smartphone, um die Touren zu erleben.</p>
-                            
                             <div className="bg-white p-4 rounded-2xl shadow-lg mb-8">
                                 <img src={qrUrl} alt="QR Code" className="w-48 h-48" />
                             </div>
-                            
                             <p className="text-sm text-gray-500 mb-6">Mit der Handykamera scannen</p>
-                            
                             <hr className="w-full border-gray-700 mb-6" />
-                            
                             <button onClick={() => setView('login')} className="w-full bg-gray-800 hover:bg-gray-700 transition text-white font-bold py-3 rounded-xl border border-gray-700">
                                 Zum Admin-Bereich
                             </button>
@@ -197,15 +193,11 @@
                 );
             };
 
-            // --------------------------------------------------------
-            // THALAU ENTDECKEN (STARTSEITE) - Kürzerer Header
-            // --------------------------------------------------------
             const PlayerToursView = () => {
                 const bgYtId = getYouTubeId(appSettings.bgVideoUrl);
                 
                 return (
                 <div className="min-h-screen bg-black text-white relative overflow-hidden">
-                    {/* Fixed Header - now 35vh instead of 45vh */}
                     <div className="fixed top-0 left-0 w-full h-[35vh] bg-gray-900 z-30 shadow-[0_10px_30px_rgba(0,0,0,0.8)] pointer-events-none">
                         {bgYtId ? (
                             <iframe className="absolute inset-0 w-full h-full object-cover opacity-60 pointer-events-none" src={`https://www.youtube.com/embed/${bgYtId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${bgYtId}&playsinline=1`} frameBorder="0" allow="autoplay; encrypted-media"></iframe>
@@ -225,7 +217,6 @@
                         </div>
                     </div>
 
-                    {/* Scrollable Content Container */}
                     <div className="fixed top-[35vh] bottom-[80px] left-0 w-full overflow-y-auto z-20 pb-10 pt-6 px-6 no-scrollbar">
                         <div className="space-y-6 max-w-md mx-auto w-full">
                             {tours.map(tour => (
@@ -247,7 +238,6 @@
                         </div>
                     </div>
 
-                    {/* Fixed Footer - Nebeneinander, Perfekt Zentriert */}
                     <footer className="fixed bottom-0 left-0 w-full h-[80px] bg-black border-t border-white/10 z-30 flex justify-center items-center px-4">
                         <div className="flex w-full max-w-md justify-between items-center text-xs">
                             <div className="flex-1 flex justify-center text-center">
@@ -265,9 +255,6 @@
                 );
             };
 
-            // --------------------------------------------------------
-            // KOMPONENTE: MINIMAP FÜR POP-UP
-            // --------------------------------------------------------
             const MiniMap = ({ targetLat, targetLng, userLoc, tourPath, expanded }) => {
                 const mapRef = React.useRef(null);
                 const containerRef = React.useRef(null);
@@ -289,7 +276,6 @@
                         }
 
                         if (targetLat) {
-                            // Guideline nur rendern, wenn es keinen festen Pfad (tourPath) gibt
                             if (!tourPath || tourPath.length === 0) {
                                 guideLineRef.current = L.polyline([[userLoc.lat, userLoc.lng], [targetLat, targetLng]], { color: '#666', weight: 3, dashArray: '5, 10' }).addTo(mapRef.current);
                             }
@@ -319,12 +305,10 @@
                 return <div ref={containerRef} className="w-full h-full rounded-2xl bg-gray-800 z-0"></div>;
             };
 
-            // --------------------------------------------------------
-            // HAUPTSPIEL (RALLYE ANSICHT)
-            // --------------------------------------------------------
             const PlayerGameView = () => {
                 const [userLoc, setUserLoc] = React.useState(null);
                 const [currentStationIndex, setCurrentStationIndex] = React.useState(0);
+                const [score, setScore] = React.useState(0);
                 
                 const [tourStarted, setTourStarted] = React.useState(false);
                 const [showRules, setShowRules] = React.useState(false);
@@ -333,12 +317,12 @@
                 const [sheetMode, setSheetMode] = React.useState('quiz'); 
                 const [sheetExpanded, setSheetExpanded] = React.useState(false);
                 const [showQuizInfo, setShowQuizInfo] = React.useState(false);
-                const [quizResult, setQuizResult] = React.useState(null); // 'correct', 'close', 'wrong'
+                const [quizResult, setQuizResult] = React.useState(null);
 
-                // Spezifische Quiz-States für Spieler
                 const [quizNumberInput, setQuizNumberInput] = React.useState('');
                 const [quizSliderVal, setQuizSliderVal] = React.useState(50);
                 const [quizOrderItems, setQuizOrderItems] = React.useState([]);
+                const [selectedForSwap, setSelectedForSwap] = React.useState(null);
 
                 const activeTour = tours.find(t => t.id === activeTourId);
                 const tourStations = allStations.filter(s => s.tourId === activeTourId);
@@ -354,11 +338,18 @@
                     return () => navigator.geolocation.clearWatch(watchId);
                 }, []);
 
+                const getDistance = (lat1, lon1, lat2, lon2) => {
+                    if(!lat1 || !lon1 || !lat2 || !lon2) return null;
+                    const R = 6371e3; const p1 = lat1 * Math.PI/180; const p2 = lat2 * Math.PI/180;
+                    const dp = (lat2-lat1) * Math.PI/180; const dl = (lon2-lon1) * Math.PI/180;
+                    const a = Math.sin(dp/2) * Math.sin(dp/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) * Math.sin(dl/2);
+                    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+                };
+
                 const currentDistance = currentStation && userLoc ? getDistance(userLoc.lat, userLoc.lng, currentStation.lat, currentStation.lng) : null;
                 const distanceToStart = activeTour?.parkingLat && userLoc ? getDistance(userLoc.lat, userLoc.lng, activeTour.parkingLat, activeTour.parkingLng) : null;
                 const isNearStart = distanceToStart !== null && distanceToStart < 200;
 
-                // Init spezielle Quiz Types
                 React.useEffect(() => {
                     if (sheetState === 'at_station' && currentStation?.hasQuiz) {
                         setQuizNumberInput('');
@@ -366,7 +357,6 @@
                         setShowQuizInfo(false);
                         setQuizSliderVal(currentStation.quiz?.sliderMin || 0);
                         if (currentStation.quizType === 'order' && currentStation.quiz?.orderItems) {
-                            // Shuffle for player
                             let items = currentStation.quiz.orderItems.map((text, index) => ({text, originalIndex: index}));
                             items.sort(() => Math.random() - 0.5);
                             setQuizOrderItems(items);
@@ -383,35 +373,41 @@
                     }
                 }, [currentDistance, sheetState, currentStation, tourStarted]);
 
-                // Neuer Auswertungs-Helper, der nicht alert(), sondern das Sheet wechselt
+                // Auto Finish wenn beim Parkplatz (Rückführung aktiv)
+                React.useEffect(() => {
+                    if (sheetState === 'returning' && distanceToStart !== null && distanceToStart < 30) {
+                        showToast("Parkplatz erreicht! Tour erfolgreich beendet.");
+                        setTimeout(() => setView('player_tours'), 3000);
+                    }
+                }, [distanceToStart, sheetState]);
+
                 const evaluateQuiz = (isCorrect, isClose = false) => {
-                    if (isCorrect) setQuizResult('correct');
-                    else if (isClose) setQuizResult('close');
-                    else setQuizResult('wrong');
-                    
+                    if (isCorrect) {
+                        setQuizResult('correct');
+                        setScore(s => s + 100);
+                    } else if (isClose) {
+                        setQuizResult('close');
+                        setScore(s => s + 50);
+                    } else {
+                        setQuizResult('wrong');
+                    }
                     setSheetMode('info');
                     setSheetExpanded(true);
                 };
 
                 const checkChoiceQuiz = (idx) => evaluateQuiz(idx === currentStation.quiz.correctIndex);
-                
                 const checkNumberQuiz = () => evaluateQuiz(parseInt(quizNumberInput) === parseInt(currentStation.quiz.correctNumber));
-                
                 const checkSliderQuiz = () => {
                     const diff = Math.abs(quizSliderVal - parseInt(currentStation.quiz.sliderCorrect));
                     const range = (currentStation.quiz.sliderMax || 100) - (currentStation.quiz.sliderMin || 0);
                     if (diff === 0) evaluateQuiz(true);
-                    else if (diff <= range * 0.05) evaluateQuiz(false, true); // 5% Toleranz = "Fast!"
+                    else if (diff <= range * 0.05) evaluateQuiz(false, true); 
                     else evaluateQuiz(false);
                 };
-
                 const checkOrderQuiz = () => {
                     const isCorrect = quizOrderItems.every((item, idx) => item.originalIndex === idx);
                     evaluateQuiz(isCorrect);
                 };
-
-                // Für Touch Swap State
-                const [selectedForSwap, setSelectedForSwap] = React.useState(null);
 
                 const handleNextStation = () => {
                     if (currentStationIndex + 1 < tourStations.length) {
@@ -430,12 +426,56 @@
                     }
                 };
 
+                // Sicherheitsabfrage beim Beenden (Pfeil Oben-Links)
+                const handleBackClick = () => {
+                    if (tourStarted && sheetState !== 'finished' && sheetState !== 'returning') {
+                        if (window.confirm("Möchtest du die Tour wirklich abbrechen? Dein aktueller Fortschritt geht verloren.")) {
+                            setView('player_tours');
+                        }
+                    } else {
+                        setView('player_tours');
+                    }
+                };
+
+                // PDF Urkunde Generierung
+                const generatePDF = () => {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF({ orientation: 'landscape' });
+                    
+                    doc.setFillColor(28, 28, 30);
+                    doc.rect(0, 0, 297, 210, 'F');
+                    
+                    doc.setDrawColor(10, 132, 255);
+                    doc.setLineWidth(2);
+                    doc.rect(10, 10, 277, 190);
+
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFontSize(40);
+                    doc.text("URKUNDE", 148.5, 50, { align: 'center' });
+                    
+                    doc.setFontSize(20);
+                    doc.setTextColor(10, 132, 255);
+                    doc.text("Dorfrallye Thalau", 148.5, 70, { align: 'center' });
+                    
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFontSize(24);
+                    doc.text(`Tour: ${activeTour?.name || ''}`, 148.5, 105, { align: 'center' });
+                    
+                    doc.setFontSize(20);
+                    doc.text(`Erreichte Punkte: ${score}`, 148.5, 130, { align: 'center' });
+                    
+                    doc.setFontSize(14);
+                    doc.setTextColor(150, 150, 150);
+                    doc.text(`Datum: ${new Date().toLocaleDateString('de-DE')}`, 148.5, 170, { align: 'center' });
+                    
+                    doc.save(`Urkunde_${activeTour?.name || 'Tour'}.pdf`);
+                };
+
                 const getSpacerHeight = () => {
                     if (sheetState === 'hidden') return '20px';
                     return sheetExpanded ? '75vh' : '40vh'; 
                 };
                 
-                // Funktion zum Zuschneiden des Pfads bis zur aktuellen Station
                 const getProgressivePath = () => {
                     if (!activeTour?.path || activeTour.path.length === 0 || !currentStation) return [];
                     let minIndex = activeTour.path.length - 1;
@@ -452,18 +492,17 @@
 
                 return (
                     <div className="min-h-screen bg-black">
-                        
-                        {/* HEADER */}
                         <header className="fixed top-0 left-0 w-full h-[25vh] z-50 overflow-hidden bg-black shadow-lg">
                             <img src={activeTour?.imageUrl || "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Luftbild_Thalau.JPG/1920px-Luftbild_Thalau.JPG"} 
                                  className="absolute inset-0 w-full h-full object-cover" alt="Hintergrund" />
                             <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/50 to-[#000000]"></div>
                             
-                            <button onClick={()=>setView('player_tours')} className="absolute top-10 left-4 w-10 h-10 flex items-center justify-center bg-black/30 backdrop-blur-md rounded-full text-white shadow-lg z-50 active:scale-90 transition-transform">
+                            {/* Zurück Button auf top-14 (Abstand für Uhrzeit) */}
+                            <button onClick={handleBackClick} className="absolute top-14 left-4 w-10 h-10 flex items-center justify-center bg-black/30 backdrop-blur-md rounded-full text-white shadow-lg z-50 active:scale-90 transition-transform">
                                 <IconChevronLeft />
                             </button>
 
-                            <div className="absolute inset-0 flex flex-col items-center justify-center px-16 pt-10">
+                            <div className="absolute inset-0 flex flex-col items-center justify-center px-16 pt-12">
                                 <h1 className="text-3xl font-bold text-white text-center leading-tight text-shadow break-words hyphens-auto w-full line-clamp-2" lang="de">
                                     {activeTour?.name || "Historische Tour"}
                                 </h1>
@@ -473,13 +512,12 @@
                             </div>
                         </header>
 
-                        {/* Fade mask ONLY when tour started to not darken the overview */}
                         {tourStarted && <div className="fade-mask"></div>}
 
                         <main className="relative z-10 px-4" style={{ paddingTop: '27vh' }}>
-                            {/* Anreise Ansicht */}
                             {!tourStarted ? (
-                                <div className="max-w-md mx-auto pt-6 text-center relative z-50">
+                                /* Anreise: Höhe begrenzt & Scroll deaktiviert */
+                                <div className="max-w-md mx-auto pt-6 text-center relative z-50 h-[70vh] overflow-hidden">
                                     <div className="bg-darkCard p-6 rounded-3xl shadow-2xl border border-white/10 text-left mb-6 relative">
                                         <h2 className="text-2xl font-bold text-white mb-4">Tour Übersicht</h2>
                                         <div className="space-y-3 mb-6">
@@ -487,7 +525,6 @@
                                             <div className="flex justify-between border-b border-gray-800 pb-2"><span className="text-gray-400">Dauer</span><span className="font-medium text-white">{activeTour?.duration || '-'}</span></div>
                                             <div className="flex justify-between border-b border-gray-800 pb-2"><span className="text-gray-400">Stationen</span><span className="font-medium text-white">{tourStations.length}</span></div>
                                             
-                                            {/* Einkehr sauber ausgerichtet mit Abstand */}
                                             <div className="flex justify-between items-start pt-1">
                                                 <span className="text-gray-400 w-1/3">Einkehr</span>
                                                 <span className="font-medium text-white w-2/3 text-right leading-tight">{activeTour?.refreshments || '-'}</span>
@@ -519,7 +556,6 @@
                                     </div>
                                 </div>
                             ) : (
-                                /* Normale Zeitleiste */
                                 <div className="relative max-w-md mx-auto pt-4">
                                     <div className="timeline-line"></div>
 
@@ -553,14 +589,18 @@
                             )}
                         </main>
 
-                        {/* Regeln Pop-Up (Vor dem Start) */}
+                        {/* Regeln Pop-Up Scroll-Fix (NUR der Fließtext scrollt) */}
                         {showRules && !tourStarted && (
                              <div className="fixed bottom-0 left-0 w-full z-[150] bg-[#1C1C1E] border-t border-gray-800 rounded-t-[32px] shadow-[0_-20px_50px_rgba(0,0,0,0.8)] sheet-transition h-[75vh] flex flex-col">
-                                <div className="px-6 flex-1 overflow-y-auto pb-6 pt-8">
-                                    <h3 className="text-2xl font-bold text-white mb-4">Regeln & Infos</h3>
-                                    <div className="bg-gray-800/50 p-4 rounded-xl text-gray-300 leading-relaxed mb-6 whitespace-pre-wrap">
+                                <div className="px-6 pt-8 pb-4 flex-shrink-0">
+                                    <h3 className="text-2xl font-bold text-white">Regeln & Infos</h3>
+                                </div>
+                                <div className="px-6 flex-1 overflow-y-auto">
+                                    <div className="bg-gray-800/50 p-4 rounded-xl text-gray-300 leading-relaxed whitespace-pre-wrap">
                                         {activeTour?.rulesText || "Viel Spaß bei der Tour! Bitte achtet auf den Verkehr und nehmt Rücksicht auf die Natur."}
                                     </div>
+                                </div>
+                                <div className="px-6 pt-4 pb-8 flex-shrink-0">
                                     <button onClick={() => { setShowRules(false); setTourStarted(true); setSheetState('navigating'); }} className="w-full bg-iosBlue text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-transform text-lg">
                                         Fertig
                                     </button>
@@ -568,11 +608,9 @@
                              </div>
                         )}
 
-                        {/* BOTTOM SHEET WÄHREND DER TOUR */}
                         {tourStarted && sheetState !== 'hidden' && (
                             <div className={`fixed bottom-0 left-0 w-full z-[100] bg-[#1C1C1E] border-t border-gray-800 rounded-t-[32px] shadow-[0_-20px_50px_rgba(0,0,0,0.8)] sheet-transition flex flex-col ${sheetExpanded ? 'h-[75vh]' : 'h-auto pb-8'}`}>
                                 
-                                {/* Drag Handle verschwindet im Quiz- UND Info-Modus (nur beim Navigieren sichtbar) */}
                                 {sheetState === 'navigating' ? (
                                     <div className="w-full pt-3 pb-3 flex justify-center cursor-pointer flex-shrink-0" onClick={() => setSheetExpanded(!sheetExpanded)}>
                                         <div className="w-14 h-1.5 bg-gray-600 rounded-full"></div>
@@ -611,7 +649,6 @@
                                                     <div className="flex justify-between items-start mb-4">
                                                         <h3 className="text-2xl font-bold text-white flex-1 pr-2 break-words hyphens-auto" lang="de">Ziel erreicht! Zeit für ein Rätsel.</h3>
                                                         
-                                                        {/* Quiz-Info mit Standard-Fallback */}
                                                         {(() => {
                                                             const defaultQuizInfos = {
                                                                 choice: "Wähle die richtige Antwort aus den Optionen.",
@@ -642,7 +679,6 @@
 
                                                     <p className="text-gray-300 font-medium mb-4">{currentStation.quiz?.question}</p>
                                                     
-                                                    {/* Quiz Rendering */}
                                                     {currentStation.quizType === 'choice' && (
                                                         <div className="space-y-2">
                                                             {currentStation.quiz?.answers.map((ans, idx) => (
@@ -719,7 +755,6 @@
 
                                             {sheetMode === 'info' && (
                                                 <div className="space-y-4">
-                                                    {/* Auswertungs-Banner */}
                                                     {quizResult === 'correct' && <div className="bg-green-900/30 border border-green-500 text-green-400 font-bold p-3 rounded-xl text-center mb-4">Richtig! Super gemacht!</div>}
                                                     {quizResult === 'close' && <div className="bg-yellow-900/30 border border-yellow-500 text-yellow-400 font-bold p-3 rounded-xl text-center mb-4">Fast! Sehr gut geschätzt!</div>}
                                                     {quizResult === 'wrong' && <div className="bg-red-900/30 border border-red-500 text-red-400 font-bold p-3 rounded-xl text-center mb-4">Leider nicht ganz richtig!</div>}
@@ -742,11 +777,53 @@
                                         </div>
                                     )}
 
+                                    {/* Abschluss-Urkunden Seite */}
                                     {sheetState === 'finished' && (
-                                        <div className="pt-8 pb-8 text-center">
-                                            <h3 className="text-3xl font-bold text-green-500 mb-4">Herzlichen Glückwunsch!</h3>
-                                            <p className="text-gray-300 mb-8">Du hast die Tour erfolgreich abgeschlossen.</p>
-                                            <button onClick={()=>setView('player_tours')} className="w-full bg-gray-800 text-white font-bold py-4 rounded-xl">Zurück zur Übersicht</button>
+                                        <div className="pt-8 pb-8 flex flex-col items-center">
+                                            <h3 className="text-3xl font-bold text-green-500 mb-2 text-center">Herzlichen Glückwunsch!</h3>
+                                            <p className="text-gray-300 mb-6 text-center">Du hast die Tour erfolgreich abgeschlossen.</p>
+                                            
+                                            <div className="bg-gray-800 p-6 rounded-3xl w-full mb-6 text-center">
+                                                <div className="text-sm text-gray-400 uppercase tracking-widest mb-1">Erreichte Punkte</div>
+                                                <div className="text-5xl font-bold text-iosBlue">{score}</div>
+                                            </div>
+
+                                            {appSettings.finalText && <p className="text-gray-300 mb-8 leading-relaxed whitespace-pre-wrap text-center">{appSettings.finalText}</p>}
+                                            
+                                            <button onClick={generatePDF} className="w-full bg-darkCard border border-gray-700 text-white font-bold py-4 rounded-xl mb-4 flex items-center justify-center gap-2 transition active:scale-95">
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                                Urkunde als PDF
+                                            </button>
+
+                                            {appSettings.donationUrl && (
+                                                <a href={appSettings.donationUrl} target="_blank" rel="noopener noreferrer" className="w-full bg-pink-600 text-white font-bold py-4 rounded-xl mb-6 text-center transition active:scale-95">
+                                                    Kleine Spende hinterlassen ☕
+                                                </a>
+                                            )}
+
+                                            {activeTour?.returnToParking && activeTour?.parkingLat ? (
+                                                <button onClick={() => {setSheetState('returning'); setSheetExpanded(true);}} className="w-full bg-iosBlue text-white font-bold py-4 rounded-xl transition active:scale-95">Zurück zum Parkplatz</button>
+                                            ) : (
+                                                <button onClick={()=>setView('player_tours')} className="w-full bg-gray-800 text-white font-bold py-4 rounded-xl transition active:scale-95">Zurück zur Übersicht</button>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Rückführung zum Auto */}
+                                    {sheetState === 'returning' && (
+                                        <div className="pt-2 pb-8 flex flex-col h-full">
+                                            <h3 className="text-2xl font-bold text-white mb-4">Rückweg zum Parkplatz</h3>
+                                            <p className="text-gray-400 mb-4 text-sm">Folge der Karte zurück zu deinem Ausgangspunkt.</p>
+                                            
+                                            <div className={`w-full bg-gray-800 rounded-2xl transition-all duration-300 relative flex-1 min-h-[300px] mb-4`}>
+                                                <MiniMap targetLat={activeTour?.parkingLat} targetLng={activeTour?.parkingLng} userLoc={userLoc} tourPath={[]} expanded={true} />
+                                            </div>
+                                            
+                                            {distanceToStart !== null && distanceToStart < 30 ? (
+                                                <button onClick={()=>setView('player_tours')} className="w-full bg-green-600 text-white font-bold py-4 rounded-xl">Abschließen</button>
+                                            ) : (
+                                                <div className="bg-gray-800 text-center font-bold text-white p-4 rounded-xl">Noch {distanceToStart ? Math.round(distanceToStart) : '-'} m</div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -756,9 +833,6 @@
                 );
             };
 
-            // --------------------------------------------------------
-            // ADMIN BEREICH
-            // --------------------------------------------------------
             const LoginView = () => {
                 const [email, setEmail] = React.useState('');
                 const [password, setPassword] = React.useState('');
@@ -783,21 +857,21 @@
             const AdminToursView = () => {
                 const [showForm, setShowForm] = React.useState(false);
                 const [editingId, setEditingId] = React.useState(null);
-                const [formData, setFormData] = React.useState({ name: '', description: '', duration: '', length: '', elevation: '', refreshments: '', imageUrl: '', parkingLat: '', parkingLng: '', rulesText: '' });
+                const [formData, setFormData] = React.useState({ name: '', description: '', duration: '', length: '', elevation: '', refreshments: '', imageUrl: '', parkingLat: '', parkingLng: '', rulesText: '', returnToParking: false });
                 const parkingMapRef = React.useRef(null);
                 const parkingMarkerRef = React.useRef(null);
                 const parkingContainerRef = React.useRef(null);
 
                 const editTour = (tour) => {
                     setEditingId(tour.id);
-                    setFormData({ name: tour.name||'', description: tour.description||'', duration: tour.duration||'', length: tour.length||'', elevation: tour.elevation||'', refreshments: tour.refreshments||'', imageUrl: tour.imageUrl||'', parkingLat: tour.parkingLat||'', parkingLng: tour.parkingLng||'', rulesText: tour.rulesText||'' });
+                    setFormData({ name: tour.name||'', description: tour.description||'', duration: tour.duration||'', length: tour.length||'', elevation: tour.elevation||'', refreshments: tour.refreshments||'', imageUrl: tour.imageUrl||'', parkingLat: tour.parkingLat||'', parkingLng: tour.parkingLng||'', rulesText: tour.rulesText||'', returnToParking: tour.returnToParking||false });
                     setShowForm(true);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 };
 
                 const resetForm = () => {
                     setEditingId(null);
-                    setFormData({ name: '', description: '', duration: '', length: '', elevation: '', refreshments: '', imageUrl: '', parkingLat: '', parkingLng: '', rulesText: '' });
+                    setFormData({ name: '', description: '', duration: '', length: '', elevation: '', refreshments: '', imageUrl: '', parkingLat: '', parkingLng: '', rulesText: '', returnToParking: false });
                     setShowForm(false);
                 }
 
@@ -885,6 +959,11 @@
                                 </div>
                                 <textarea value={formData.rulesText} onChange={e=>setFormData({...formData, rulesText: e.target.value})} placeholder="Regeln & Infos für Pop-Up vor dem Start" className="w-full p-3 rounded-xl text-black h-24" />
 
+                                <label className="flex items-center space-x-2 text-white font-bold mt-2">
+                                    <input type="checkbox" checked={formData.returnToParking} onChange={e=>setFormData({...formData, returnToParking: e.target.checked})} className="w-5 h-5 rounded" />
+                                    <span>Rückführung zum Parkplatz (am Ende der Tour)</span>
+                                </label>
+
                                 <div className="flex gap-2 pt-2">
                                     <button type="button" onClick={resetForm} className="bg-gray-700 px-4 rounded-xl">Abbrechen</button>
                                     <button type="submit" className="flex-1 bg-iosBlue text-white font-bold py-3 rounded-xl">{editingId ? 'Speichern' : 'Anlegen'}</button>
@@ -913,13 +992,12 @@
             const AdminStationsView = () => {
                 const activeTour = tours.find(t => t.id === activeTourId);
                 const tourStations = allStations.filter(s => s.tourId === activeTourId);
-                const [mode, setMode] = React.useState('station'); // 'station' or 'route'
+                const [mode, setMode] = React.useState('station'); 
                 const [tourPath, setTourPath] = React.useState(activeTour?.path || []);
                 const [showForm, setShowForm] = React.useState(false);
                 
                 const [editingId, setEditingId] = React.useState(null);
                 
-                // Erweitertes initiales State für die neuen Quiz-Arten
                 const defaultQuiz = { 
                     question: '', 
                     answers: ['', '', '', ''], correctIndex: 0, 
@@ -984,7 +1062,6 @@
                     }
                 }, []);
 
-                // Path initial rendern
                 React.useEffect(() => {
                     if(mapRef.current && mode === 'route') {
                         if(polylineRef.current) mapRef.current.removeLayer(polylineRef.current);
@@ -1013,7 +1090,6 @@
                     const st1 = tourStations[index];
                     const st2 = tourStations[index + direction];
                     const tempOrder = st1.order;
-                    // Tauschen der Order-Werte für die Sortierung
                     await updateDoc(doc(db, 'stations', st1.id), { order: st2.order });
                     await updateDoc(doc(db, 'stations', st2.id), { order: tempOrder });
                 };
@@ -1068,7 +1144,6 @@
 
                                                 <input type="text" value={stData.quiz.question} onChange={e=>setStData({...stData, quiz: {...stData.quiz, question: e.target.value}})} placeholder="Fragestellung" className="w-full p-3 rounded text-black" />
                                                 
-                                                {/* Multiple Choice Form */}
                                                 {stData.quizType === 'choice' && stData.quiz.answers.map((ans, idx) => (
                                                     <div key={idx} className="flex gap-2 items-center">
                                                         <input type="radio" name="corr" checked={stData.quiz.correctIndex === idx} onChange={()=>setStData({...stData, quiz: {...stData.quiz, correctIndex: idx}})} className="w-5 h-5" />
@@ -1076,12 +1151,10 @@
                                                     </div>
                                                 ))}
 
-                                                {/* Zahleneingabe Form */}
                                                 {stData.quizType === 'number' && (
                                                     <div><label className="text-xs text-gray-400">Korrekte Lösungszahl:</label><input type="number" value={stData.quiz.correctNumber} onChange={e=>setStData({...stData, quiz: {...stData.quiz, correctNumber: parseInt(e.target.value)}})} className="w-full p-3 rounded text-black mt-1" /></div>
                                                 )}
 
-                                                {/* Slider Form */}
                                                 {stData.quizType === 'slider' && (
                                                     <div className="space-y-2">
                                                         <div className="flex gap-2">
@@ -1092,7 +1165,6 @@
                                                     </div>
                                                 )}
 
-                                                {/* Order Form */}
                                                 {stData.quizType === 'order' && (
                                                     <div className="space-y-2">
                                                         <p className="text-xs text-gray-400">Gib die Elemente hier in der <b>richtigen</b> Reihenfolge ein. Beim Spieler werden sie gemischt angezeigt.</p>
@@ -1151,22 +1223,24 @@
                 const [qSlider, setQSlider] = React.useState(appSettings.quizInfo_slider || '');
                 const [qOrder, setQOrder] = React.useState(appSettings.quizInfo_order || '');
                 
-                // PWA Settings State
                 const [pwaIos, setPwaIos] = React.useState(appSettings.pwaPromptIos || '');
                 const [pwaAndroid, setPwaAndroid] = React.useState(appSettings.pwaPromptAndroid || '');
+                
+                const [finalText, setFinalText] = React.useState(appSettings.finalText || '');
+                const [donationUrl, setDonationUrl] = React.useState(appSettings.donationUrl || '');
 
                 const saveSettings = async (e) => {
                     e.preventDefault();
                     try {
-                        // MERGE: TRUE verhindert, dass bereits vorhandene, aber im Formular gerade nicht sichtbare Felder gelöscht werden
                         await setDoc(doc(db, 'settings', 'global'), { 
                             bgVideoUrl: video, impressumUrl: imp, datenschutzUrl: dat,
                             quizInfo_choice: qChoice, quizInfo_number: qNumber, quizInfo_slider: qSlider, quizInfo_order: qOrder,
-                            pwaPromptIos: pwaIos, pwaPromptAndroid: pwaAndroid
+                            pwaPromptIos: pwaIos, pwaPromptAndroid: pwaAndroid,
+                            finalText: finalText, donationUrl: donationUrl
                         }, { merge: true });
                         showToast("Einstellungen gespeichert!");
                     } catch(err) {
-                        alert("Firebase Permission Error: " + err.message + "\n\nBitte passe in der Firebase Console unter Firestore -> Rules die Regeln so an, dass eingeloggte Nutzer schreiben dürfen!");
+                        alert("Firebase Permission Error: Bitte checke die Regeln.");
                     }
                 };
 
@@ -1179,6 +1253,11 @@
                             <div><label className="text-sm text-gray-400">Impressum Link</label><input type="url" value={imp} onChange={e=>setImp(e.target.value)} className="w-full p-3 rounded-xl text-black mt-1" /></div>
                             <div><label className="text-sm text-gray-400">Datenschutz Link</label><input type="url" value={dat} onChange={e=>setDat(e.target.value)} className="w-full p-3 rounded-xl text-black mt-1" /></div>
                             
+                            <hr className="border-gray-700 my-6" />
+                            <h4 className="font-bold text-gray-300">Abschluss & Urkunde</h4>
+                            <div><label className="text-sm text-gray-400">Schlusstext nach der Tour</label><textarea value={finalText} onChange={e=>setFinalText(e.target.value)} placeholder="Danke fürs Mitmachen..." className="w-full p-3 rounded-xl text-black mt-1 h-24" /></div>
+                            <div><label className="text-sm text-gray-400">Spenden Link (Optional)</label><input type="url" value={donationUrl} onChange={e=>setDonationUrl(e.target.value)} placeholder="https://paypal.me/..." className="w-full p-3 rounded-xl text-black mt-1" /></div>
+
                             <hr className="border-gray-700 my-6" />
                             <h4 className="font-bold text-gray-300">Quiz Hilfetexte (i-Icon)</h4>
                             <div><label className="text-sm text-gray-400">Multiple Choice Erklärung</label><textarea value={qChoice} onChange={e=>setQChoice(e.target.value)} placeholder="Wird ein Standardtext genutzt, wenn leer gelassen." className="w-full p-3 rounded-xl text-black mt-1" /></div>
@@ -1199,9 +1278,6 @@
 
             const Toast = () => toast ? <div className="fixed top-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl z-[200]">{toast}</div> : null;
 
-            if (view === 'loading') return <div className="min-h-screen bg-black"></div>;
-            
-            // Logic to intercept desktop users
             if (isDesktop && !view.includes('admin') && view !== 'login') {
                 return <DesktopView />;
             }
@@ -1215,7 +1291,6 @@
                     {view === 'admin_stations' && <AdminStationsView />}
                     {view === 'admin_settings' && <AdminSettingsView />}
                     
-                    {/* Das PWA Prompt Modal wird ganz oben auf der App gerendert */}
                     <PwaPromptModal />
                     <Toast />
                 </div>
