@@ -73,6 +73,7 @@
         const IconChevronUp = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>;
         const IconChevronDown = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>;
         const IconSettings = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>;
+        const IconInfo = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>;
         const IconClock = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>;
         const IconRuler = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.3 15.3l-13.4 13.4a2 2 0 0 1-2.8 0l-2.8-2.8a2 2 0 0 1 0-2.8l13.4-13.4a2 2 0 0 1 2.8 0l2.8 2.8a2 2 0 0 1 0 2.8z"></path><path d="M14.5 5.5l4 4"></path><path d="M11.5 8.5l4 4"></path><path d="M8.5 11.5l4 4"></path><path d="M5.5 14.5l4 4"></path></svg>;
         const IconMountain = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3l4 8 5-5 5 15H2L8 3z"></path></svg>;
@@ -85,11 +86,18 @@
             const [allStations, setAllStations] = React.useState([]);
             const [activeTourId, setActiveTourId] = React.useState(null);
             const [adminUser, setAdminUser] = React.useState(null);
-            const [appSettings, setAppSettings] = React.useState({ bgVideoUrl: '', impressumUrl: '', datenschutzUrl: '' });
+            const [appSettings, setAppSettings] = React.useState({ bgVideoUrl: '', impressumUrl: '', datenschutzUrl: '', quizInfo_choice: '', quizInfo_number: '', quizInfo_slider: '', quizInfo_order: '' });
             const [toast, setToast] = React.useState(null);
             const [isDesktop, setIsDesktop] = React.useState(false);
 
             const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
+
+            // Helper to get YouTube Video ID
+            const getYouTubeId = (url) => {
+                const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+                const match = url?.match(regExp);
+                return (match && match[2].length === 11) ? match[2] : null;
+            };
 
             React.useEffect(() => {
                 const checkDesktop = () => setIsDesktop(window.innerWidth > 800);
@@ -156,11 +164,16 @@
             // --------------------------------------------------------
             // THALAU ENTDECKEN (STARTSEITE) - Kürzerer Header
             // --------------------------------------------------------
-            const PlayerToursView = () => (
+            const PlayerToursView = () => {
+                const bgYtId = getYouTubeId(appSettings.bgVideoUrl);
+                
+                return (
                 <div className="min-h-screen bg-black text-white relative overflow-hidden">
                     {/* Fixed Header - now 35vh instead of 45vh */}
-                    <div className="fixed top-0 left-0 w-full h-[35vh] bg-gray-900 z-30 shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
-                        {appSettings.bgVideoUrl ? (
+                    <div className="fixed top-0 left-0 w-full h-[35vh] bg-gray-900 z-30 shadow-[0_10px_30px_rgba(0,0,0,0.8)] pointer-events-none">
+                        {bgYtId ? (
+                            <iframe className="absolute inset-0 w-full h-full object-cover opacity-60 pointer-events-none" src={`https://www.youtube.com/embed/${bgYtId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${bgYtId}&playsinline=1`} frameBorder="0" allow="autoplay; encrypted-media"></iframe>
+                        ) : appSettings.bgVideoUrl ? (
                             <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover opacity-60">
                                 <source src={appSettings.bgVideoUrl} type="video/mp4" />
                             </video>
@@ -169,14 +182,14 @@
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30"></div>
                         <div className="absolute bottom-6 left-0 w-full px-6 flex justify-center">
-                            <div className="bg-black/50 backdrop-blur-md border border-white/10 px-8 py-4 rounded-[2rem] shadow-xl text-center">
+                            <div className="bg-black/50 backdrop-blur-md border border-white/10 px-8 py-4 rounded-[2rem] shadow-xl text-center pointer-events-auto">
                                 <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white text-shadow mb-1">Thalau Entdecken</h1>
                                 <p className="text-gray-300 font-medium text-sm">Wähle deine Route</p>
                             </div>
                         </div>
                     </div>
 
-                    {/* Scrollable Content Container - Matches the new 35vh height */}
+                    {/* Scrollable Content Container */}
                     <div className="fixed top-[35vh] bottom-[80px] left-0 w-full overflow-y-auto z-20 pb-10 pt-6 px-6 no-scrollbar">
                         <div className="space-y-6 max-w-md mx-auto w-full">
                             {tours.map(tour => (
@@ -198,16 +211,17 @@
                         </div>
                     </div>
 
-                    {/* Fixed Footer */}
-                    <footer className="fixed bottom-0 left-0 w-full h-[80px] bg-black border-t border-white/10 z-30 flex flex-col justify-center items-center gap-1">
-                        <button onClick={() => setView('login')} className="font-medium hover:text-white transition bg-gray-900 px-4 py-1.5 rounded-full text-xs text-gray-400">Admin Login</button>
-                        <div className="flex gap-4 mt-1 text-[10px] text-gray-500">
-                            {appSettings.impressumUrl && <a href={appSettings.impressumUrl} target="_blank" className="hover:text-gray-300 underline">Impressum</a>}
-                            {appSettings.datenschutzUrl && <a href={appSettings.datenschutzUrl} target="_blank" className="hover:text-gray-300 underline">Datenschutz</a>}
+                    {/* Fixed Footer - Nebeneinander */}
+                    <footer className="fixed bottom-0 left-0 w-full h-[80px] bg-black border-t border-white/10 z-30 flex justify-center items-center px-4">
+                        <div className="flex w-full max-w-md justify-between items-center text-xs">
+                            {appSettings.impressumUrl ? <a href={appSettings.impressumUrl} target="_blank" className="text-gray-500 hover:text-gray-300 w-24 text-left">Impressum</a> : <span className="w-24"></span>}
+                            <button onClick={() => setView('login')} className="font-medium hover:text-white transition bg-gray-900 px-4 py-1.5 rounded-full text-gray-400">Admin Login</button>
+                            {appSettings.datenschutzUrl ? <a href={appSettings.datenschutzUrl} target="_blank" className="text-gray-500 hover:text-gray-300 w-24 text-right">Datenschutz</a> : <span className="w-24"></span>}
                         </div>
                     </footer>
                 </div>
-            );
+                );
+            };
 
             // --------------------------------------------------------
             // KOMPONENTE: MINIMAP FÜR POP-UP
@@ -233,7 +247,10 @@
                         }
 
                         if (targetLat) {
-                            guideLineRef.current = L.polyline([[userLoc.lat, userLoc.lng], [targetLat, targetLng]], { color: '#666', weight: 3, dashArray: '5, 10' }).addTo(mapRef.current);
+                            // Guideline nur rendern, wenn es keinen festen Pfad (tourPath) gibt
+                            if (!tourPath || tourPath.length === 0) {
+                                guideLineRef.current = L.polyline([[userLoc.lat, userLoc.lng], [targetLat, targetLng]], { color: '#666', weight: 3, dashArray: '5, 10' }).addTo(mapRef.current);
+                            }
                             mapRef.current.fitBounds([[userLoc.lat, userLoc.lng], [targetLat, targetLng]], { padding: [20, 20], maxZoom: 18 });
                         }
 
@@ -245,7 +262,7 @@
                     } else if (mapRef.current && userLoc) {
                         userMarkerRef.current.setLatLng([userLoc.lat, userLoc.lng]);
                         if(targetLat && targetMarkerRef.current) targetMarkerRef.current.setLatLng([targetLat, targetLng]);
-                        if(targetLat && guideLineRef.current) guideLineRef.current.setLatLngs([[userLoc.lat, userLoc.lng], [targetLat, targetLng]]);
+                        if(targetLat && guideLineRef.current && (!tourPath || tourPath.length === 0)) guideLineRef.current.setLatLngs([[userLoc.lat, userLoc.lng], [targetLat, targetLng]]);
                         
                         if(tourPath && pathLineRef.current) {
                              pathLineRef.current.setLatLngs(tourPath);
@@ -273,6 +290,8 @@
                 const [sheetState, setSheetState] = React.useState('navigating'); 
                 const [sheetMode, setSheetMode] = React.useState('quiz'); 
                 const [sheetExpanded, setSheetExpanded] = React.useState(false);
+                const [showQuizInfo, setShowQuizInfo] = React.useState(false);
+                const [quizResult, setQuizResult] = React.useState(null); // 'correct', 'close', 'wrong'
 
                 // Spezifische Quiz-States für Spieler
                 const [quizNumberInput, setQuizNumberInput] = React.useState('');
@@ -301,6 +320,8 @@
                 React.useEffect(() => {
                     if (sheetState === 'at_station' && currentStation?.hasQuiz) {
                         setQuizNumberInput('');
+                        setQuizResult(null);
+                        setShowQuizInfo(false);
                         setQuizSliderVal(currentStation.quiz?.sliderMin || 0);
                         if (currentStation.quizType === 'order' && currentStation.quiz?.orderItems) {
                             // Shuffle for player
@@ -308,6 +329,7 @@
                             items.sort(() => Math.random() - 0.5);
                             setQuizOrderItems(items);
                         }
+                        setSelectedForSwap(null);
                     }
                 }, [sheetState, currentStation]);
 
@@ -319,27 +341,35 @@
                     }
                 }, [currentDistance, sheetState, currentStation, tourStarted]);
 
-                const handleQuizAnswer = (isCorrect) => {
-                    if (isCorrect) {
-                        setSheetMode('info');
-                    } else {
-                        alert("Das war leider nicht richtig. Probier es nochmal!");
-                    }
+                // Neuer Auswertungs-Helper, der nicht alert(), sondern das Sheet wechselt
+                const evaluateQuiz = (isCorrect, isClose = false) => {
+                    if (isCorrect) setQuizResult('correct');
+                    else if (isClose) setQuizResult('close');
+                    else setQuizResult('wrong');
+                    
+                    setSheetMode('info');
+                    setSheetExpanded(true);
+                };
+
+                const checkChoiceQuiz = (idx) => evaluateQuiz(idx === currentStation.quiz.correctIndex);
+                
+                const checkNumberQuiz = () => evaluateQuiz(parseInt(quizNumberInput) === parseInt(currentStation.quiz.correctNumber));
+                
+                const checkSliderQuiz = () => {
+                    const diff = Math.abs(quizSliderVal - parseInt(currentStation.quiz.sliderCorrect));
+                    const range = (currentStation.quiz.sliderMax || 100) - (currentStation.quiz.sliderMin || 0);
+                    if (diff === 0) evaluateQuiz(true);
+                    else if (diff <= range * 0.05) evaluateQuiz(false, true); // 5% Toleranz = "Fast!"
+                    else evaluateQuiz(false);
                 };
 
                 const checkOrderQuiz = () => {
                     const isCorrect = quizOrderItems.every((item, idx) => item.originalIndex === idx);
-                    handleQuizAnswer(isCorrect);
+                    evaluateQuiz(isCorrect);
                 };
 
-                const moveOrderItem = (index, direction) => {
-                    if ((direction === -1 && index === 0) || (direction === 1 && index === quizOrderItems.length - 1)) return;
-                    const newItems = [...quizOrderItems];
-                    const temp = newItems[index];
-                    newItems[index] = newItems[index + direction];
-                    newItems[index + direction] = temp;
-                    setQuizOrderItems(newItems);
-                };
+                // Für Touch Swap State
+                const [selectedForSwap, setSelectedForSwap] = React.useState(null);
 
                 const handleNextStation = () => {
                     if (currentStationIndex + 1 < tourStations.length) {
@@ -376,6 +406,7 @@
                 };
 
                 const currentPathChunk = getProgressivePath();
+                const mediaYt = sheetMode === 'info' && currentStation ? getYouTubeId(currentStation.mediaUrl) : null;
 
                 return (
                     <div className="min-h-screen bg-black">
@@ -498,9 +529,15 @@
                         {/* BOTTOM SHEET WÄHREND DER TOUR */}
                         {tourStarted && sheetState !== 'hidden' && (
                             <div className={`fixed bottom-0 left-0 w-full z-[100] bg-[#1C1C1E] border-t border-gray-800 rounded-t-[32px] shadow-[0_-20px_50px_rgba(0,0,0,0.8)] sheet-transition flex flex-col ${sheetExpanded ? 'h-[75vh]' : 'h-auto pb-8'}`}>
-                                <div className="w-full pt-3 pb-3 flex justify-center cursor-pointer flex-shrink-0" onClick={() => setSheetExpanded(!sheetExpanded)}>
-                                    <div className="w-14 h-1.5 bg-gray-600 rounded-full"></div>
-                                </div>
+                                
+                                {/* Drag Handle verschwindet im Quiz-Modus, damit Nutzer nicht abbrechen können */}
+                                {sheetMode !== 'quiz' ? (
+                                    <div className="w-full pt-3 pb-3 flex justify-center cursor-pointer flex-shrink-0" onClick={() => setSheetExpanded(!sheetExpanded)}>
+                                        <div className="w-14 h-1.5 bg-gray-600 rounded-full"></div>
+                                    </div>
+                                ) : (
+                                    <div className="w-full pt-6"></div>
+                                )}
 
                                 <div className="px-6 flex-1 overflow-y-auto">
                                     {sheetState === 'navigating' && currentStation && (
@@ -526,17 +563,31 @@
 
                                     {sheetState === 'at_station' && (
                                         <div className="pt-2 pb-8">
-                                            <h3 className="text-2xl font-bold text-white mb-4">Ziel erreicht!</h3>
                                             
                                             {sheetMode === 'quiz' && currentStation.hasQuiz && (
                                                 <div className="space-y-4">
+                                                    <div className="flex justify-between items-start mb-4">
+                                                        <h3 className="text-2xl font-bold text-white flex-1 pr-2">Ziel erreicht! Zeit für ein Rätsel.</h3>
+                                                        {appSettings[`quizInfo_${currentStation.quizType}`] && (
+                                                            <button onClick={() => setShowQuizInfo(!showQuizInfo)} className={`p-2 rounded-full transition-colors ${showQuizInfo ? 'bg-iosBlue text-white' : 'bg-gray-800 text-gray-400'}`}>
+                                                                <IconInfo />
+                                                            </button>
+                                                        )}
+                                                    </div>
+
+                                                    {showQuizInfo && appSettings[`quizInfo_${currentStation.quizType}`] && (
+                                                        <div className="bg-blue-900/30 border border-blue-500/50 p-3 rounded-xl text-sm text-blue-200 mb-4">
+                                                            {appSettings[`quizInfo_${currentStation.quizType}`]}
+                                                        </div>
+                                                    )}
+
                                                     <p className="text-gray-300 font-medium mb-4">{currentStation.quiz?.question}</p>
                                                     
                                                     {/* Quiz Rendering */}
                                                     {currentStation.quizType === 'choice' && (
                                                         <div className="space-y-2">
                                                             {currentStation.quiz?.answers.map((ans, idx) => (
-                                                                <button key={idx} onClick={() => handleQuizAnswer(idx === currentStation.quiz.correctIndex)} className="w-full bg-gray-800 hover:bg-gray-700 text-white p-4 rounded-xl text-left border border-gray-700 transition">
+                                                                <button key={idx} onClick={() => checkChoiceQuiz(idx)} className="w-full bg-gray-800 hover:bg-gray-700 text-white p-4 rounded-xl text-left border border-gray-700 transition">
                                                                     {ans}
                                                                 </button>
                                                             ))}
@@ -546,7 +597,7 @@
                                                     {currentStation.quizType === 'number' && (
                                                         <div className="space-y-4">
                                                             <input type="number" value={quizNumberInput} onChange={e=>setQuizNumberInput(e.target.value)} placeholder="Zahl eingeben..." className="w-full p-4 rounded-xl text-black font-bold text-lg text-center" />
-                                                            <button onClick={() => handleQuizAnswer(parseInt(quizNumberInput) === parseInt(currentStation.quiz.correctNumber))} className="w-full bg-iosBlue text-white font-bold py-4 rounded-xl">Bestätigen</button>
+                                                            <button onClick={checkNumberQuiz} className="w-full bg-iosBlue text-white font-bold py-4 rounded-xl">Einloggen</button>
                                                         </div>
                                                     )}
 
@@ -558,19 +609,47 @@
                                                                 <span>{currentStation.quiz.sliderMin || 0}</span>
                                                                 <span>{currentStation.quiz.sliderMax || 100}</span>
                                                             </div>
-                                                            <button onClick={() => handleQuizAnswer(quizSliderVal === parseInt(currentStation.quiz.sliderCorrect))} className="w-full bg-iosBlue text-white font-bold py-4 rounded-xl">Einloggen</button>
+                                                            <button onClick={checkSliderQuiz} className="w-full bg-iosBlue text-white font-bold py-4 rounded-xl">Einloggen</button>
                                                         </div>
                                                     )}
 
                                                     {currentStation.quizType === 'order' && (
                                                         <div className="space-y-2">
+                                                            <p className="text-gray-400 text-xs mb-2">Tippe auf zwei Elemente nacheinander, um sie zu tauschen, oder nutze Drag & Drop (am PC).</p>
                                                             {quizOrderItems.map((item, index) => (
-                                                                <div key={item.text} className="flex items-center gap-3 bg-gray-800 p-3 rounded-xl border border-gray-700">
-                                                                    <div className="flex flex-col gap-1">
-                                                                        <button onClick={()=>moveOrderItem(index, -1)} className={`p-1 bg-gray-700 rounded ${index===0 ? 'opacity-30' : ''}`}><IconChevronUp /></button>
-                                                                        <button onClick={()=>moveOrderItem(index, 1)} className={`p-1 bg-gray-700 rounded ${index===quizOrderItems.length-1 ? 'opacity-30' : ''}`}><IconChevronDown /></button>
-                                                                    </div>
-                                                                    <div className="font-medium flex-1">{item.text}</div>
+                                                                <div key={item.text} 
+                                                                    draggable
+                                                                    onDragStart={(e) => e.dataTransfer.setData('text/plain', index)}
+                                                                    onDragOver={(e) => e.preventDefault()}
+                                                                    onDrop={(e) => {
+                                                                        e.preventDefault();
+                                                                        const dragIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+                                                                        if(dragIdx === index) return;
+                                                                        const newItems = [...quizOrderItems];
+                                                                        const temp = newItems[dragIdx];
+                                                                        newItems[dragIdx] = newItems[index];
+                                                                        newItems[index] = temp;
+                                                                        setQuizOrderItems(newItems);
+                                                                    }}
+                                                                    onClick={() => {
+                                                                        if (selectedForSwap === null) {
+                                                                            setSelectedForSwap(index);
+                                                                        } else if (selectedForSwap === index) {
+                                                                            setSelectedForSwap(null);
+                                                                        } else {
+                                                                            const newItems = [...quizOrderItems];
+                                                                            const temp = newItems[selectedForSwap];
+                                                                            newItems[selectedForSwap] = newItems[index];
+                                                                            newItems[index] = temp;
+                                                                            setQuizOrderItems(newItems);
+                                                                            setSelectedForSwap(null);
+                                                                        }
+                                                                    }}
+                                                                    className={`flex items-center gap-3 bg-gray-800 p-3 rounded-xl border transition cursor-pointer ${selectedForSwap === index ? 'border-iosBlue bg-blue-900/30 shadow-[0_0_15px_rgba(10,132,255,0.3)] scale-[1.02]' : 'border-gray-700'}`}>
+                                                                    
+                                                                    <div className="w-6 h-6 flex items-center justify-center bg-black/50 text-gray-500 rounded-md font-bold text-xs pointer-events-none">{index + 1}</div>
+                                                                    <div className="font-medium flex-1 pointer-events-none">{item.text}</div>
+                                                                    <div className="text-gray-500 pointer-events-none tracking-widest leading-none">•••</div>
                                                                 </div>
                                                             ))}
                                                             <button onClick={checkOrderQuiz} className="w-full bg-iosBlue text-white font-bold py-4 rounded-xl mt-4">Prüfen</button>
@@ -581,7 +660,19 @@
 
                                             {sheetMode === 'info' && (
                                                 <div className="space-y-4">
-                                                    {currentStation.mediaUrl && <img src={currentStation.mediaUrl} alt="Info" className="w-full h-48 object-cover rounded-xl border border-gray-700" />}
+                                                    {/* Auswertungs-Banner */}
+                                                    {quizResult === 'correct' && <div className="bg-green-900/30 border border-green-500 text-green-400 font-bold p-3 rounded-xl text-center mb-4">Richtig! Super gemacht!</div>}
+                                                    {quizResult === 'close' && <div className="bg-yellow-900/30 border border-yellow-500 text-yellow-400 font-bold p-3 rounded-xl text-center mb-4">Fast! Sehr gut geschätzt!</div>}
+                                                    {quizResult === 'wrong' && <div className="bg-red-900/30 border border-red-500 text-red-400 font-bold p-3 rounded-xl text-center mb-4">Leider nicht ganz richtig!</div>}
+                                                    
+                                                    {!currentStation.hasQuiz && <h3 className="text-2xl font-bold text-white mb-4">Station erreicht!</h3>}
+
+                                                    {mediaYt ? (
+                                                        <iframe className="w-full h-48 object-cover rounded-xl border border-gray-700" src={`https://www.youtube.com/embed/${mediaYt}`} frameBorder="0" allowFullScreen></iframe>
+                                                    ) : currentStation.mediaUrl ? (
+                                                        <img src={currentStation.mediaUrl} alt="Info" className="w-full h-48 object-cover rounded-xl border border-gray-700" />
+                                                    ) : null}
+                                                    
                                                     <div className="bg-gray-800/50 p-4 rounded-xl border border-gray-800">
                                                         <h4 className="font-bold text-sm text-iosBlue mb-2">Information</h4>
                                                         <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">{currentStation.infoText || currentStation.riddle || "Keine weiteren Infos hinterlegt."}</p>
@@ -858,6 +949,16 @@
                     resetForm();
                 };
 
+                const moveStation = async (index, direction) => {
+                    if (index + direction < 0 || index + direction >= tourStations.length) return;
+                    const st1 = tourStations[index];
+                    const st2 = tourStations[index + direction];
+                    const tempOrder = st1.order;
+                    // Tauschen der Order-Werte für die Sortierung
+                    await updateDoc(doc(db, 'stations', st1.id), { order: st2.order });
+                    await updateDoc(doc(db, 'stations', st2.id), { order: tempOrder });
+                };
+
                 return (
                     <div className="min-h-screen bg-gray-900 p-8 text-white pb-24">
                         <button onClick={() => setView('admin_tours')} className="text-iosBlue mb-4 flex items-center"><IconChevronLeft /> Zurück</button>
@@ -963,7 +1064,13 @@
                             <div className="space-y-3">
                                 {tourStations.map((st, idx) => (
                                     <div key={st.id} className="bg-darkCard p-4 rounded-2xl flex justify-between items-center border border-gray-800">
-                                        <span className="font-bold">{idx+1}. {st.name}</span>
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex flex-col gap-1 mr-1">
+                                                <button onClick={()=>moveStation(idx, -1)} className={`p-1 bg-gray-800 hover:bg-gray-700 rounded transition ${idx === 0 ? 'opacity-30 pointer-events-none' : ''}`}><IconChevronUp /></button>
+                                                <button onClick={()=>moveStation(idx, 1)} className={`p-1 bg-gray-800 hover:bg-gray-700 rounded transition ${idx === tourStations.length-1 ? 'opacity-30 pointer-events-none' : ''}`}><IconChevronDown /></button>
+                                            </div>
+                                            <span className="font-bold">{idx+1}. {st.name}</span>
+                                        </div>
                                         <div className="flex gap-2">
                                             <button onClick={() => loadStationData(st)} className="p-2 bg-gray-800 rounded-lg"><IconEdit /></button>
                                             <button onClick={() => {if(window.confirm('Löschen?')) deleteDoc(doc(db, 'stations', st.id));}} className="p-2 bg-red-900/30 text-red-500 rounded-lg"><IconTrash /></button>
@@ -980,11 +1087,18 @@
                 const [video, setVideo] = React.useState(appSettings.bgVideoUrl || '');
                 const [imp, setImp] = React.useState(appSettings.impressumUrl || '');
                 const [dat, setDat] = React.useState(appSettings.datenschutzUrl || '');
+                const [qChoice, setQChoice] = React.useState(appSettings.quizInfo_choice || '');
+                const [qNumber, setQNumber] = React.useState(appSettings.quizInfo_number || '');
+                const [qSlider, setQSlider] = React.useState(appSettings.quizInfo_slider || '');
+                const [qOrder, setQOrder] = React.useState(appSettings.quizInfo_order || '');
 
                 const saveSettings = async (e) => {
                     e.preventDefault();
                     try {
-                        await setDoc(doc(db, 'settings', 'global'), { bgVideoUrl: video, impressumUrl: imp, datenschutzUrl: dat });
+                        await setDoc(doc(db, 'settings', 'global'), { 
+                            bgVideoUrl: video, impressumUrl: imp, datenschutzUrl: dat,
+                            quizInfo_choice: qChoice, quizInfo_number: qNumber, quizInfo_slider: qSlider, quizInfo_order: qOrder 
+                        });
                         showToast("Einstellungen gespeichert!");
                     } catch(err) {
                         alert("Firebase Permission Error: " + err.message + "\n\nBitte passe in der Firebase Console unter Firestore -> Rules die Regeln so an, dass eingeloggte Nutzer schreiben dürfen!");
@@ -992,13 +1106,21 @@
                 };
 
                 return (
-                    <div className="min-h-screen bg-gray-900 p-8 text-white">
+                    <div className="min-h-screen bg-gray-900 p-8 text-white pb-20">
                         <button onClick={() => setView('admin_tours')} className="text-iosBlue mb-6 flex items-center"><IconChevronLeft /> Zurück</button>
                         <h2 className="text-3xl font-bold mb-8">Globale Einstellungen</h2>
                         <form onSubmit={saveSettings} className="bg-darkCard p-6 rounded-3xl space-y-4">
-                            <div><label className="text-sm text-gray-400">Startseiten Video (MP4 via raw GitHub Link)</label><input type="url" value={video} onChange={e=>setVideo(e.target.value)} className="w-full p-3 rounded-xl text-black mt-1" /></div>
+                            <div><label className="text-sm text-gray-400">Startseiten Video (MP4 via raw GitHub Link oder YouTube URL)</label><input type="url" value={video} onChange={e=>setVideo(e.target.value)} className="w-full p-3 rounded-xl text-black mt-1" /></div>
                             <div><label className="text-sm text-gray-400">Impressum Link</label><input type="url" value={imp} onChange={e=>setImp(e.target.value)} className="w-full p-3 rounded-xl text-black mt-1" /></div>
                             <div><label className="text-sm text-gray-400">Datenschutz Link</label><input type="url" value={dat} onChange={e=>setDat(e.target.value)} className="w-full p-3 rounded-xl text-black mt-1" /></div>
+                            
+                            <hr className="border-gray-700 my-6" />
+                            <h4 className="font-bold text-gray-300">Quiz Hilfetexte (i-Icon)</h4>
+                            <div><label className="text-sm text-gray-400">Multiple Choice Erklärung</label><textarea value={qChoice} onChange={e=>setQChoice(e.target.value)} className="w-full p-3 rounded-xl text-black mt-1" /></div>
+                            <div><label className="text-sm text-gray-400">Zahleneingabe Erklärung</label><textarea value={qNumber} onChange={e=>setQNumber(e.target.value)} className="w-full p-3 rounded-xl text-black mt-1" /></div>
+                            <div><label className="text-sm text-gray-400">Schieberegler Erklärung</label><textarea value={qSlider} onChange={e=>setQSlider(e.target.value)} className="w-full p-3 rounded-xl text-black mt-1" /></div>
+                            <div><label className="text-sm text-gray-400">Reihenfolge Erklärung</label><textarea value={qOrder} onChange={e=>setQOrder(e.target.value)} className="w-full p-3 rounded-xl text-black mt-1" /></div>
+
                             <button type="submit" className="w-full bg-iosBlue py-4 rounded-xl font-bold shadow-lg mt-4">Speichern</button>
                         </form>
                     </div>
