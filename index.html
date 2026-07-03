@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Dorfrallye Thalau</title>
+
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <!-- Apple Icon -->
@@ -219,10 +220,12 @@
 
                     <div className="fixed top-[35vh] bottom-[80px] left-0 w-full overflow-y-auto z-20 pb-10 pt-6 px-6 no-scrollbar">
                         <div className="space-y-6 max-w-md mx-auto w-full">
-                            {tours.map(tour => (
+                            {tours.map(tour => {
+                                const cardStyle = { backgroundImage: tour.imageUrl ? `url(${tour.imageUrl})` : 'none' };
+                                return (
                                 <div key={tour.id} onClick={() => { setActiveTourId(tour.id); setView('player_game'); }} 
                                      className="relative rounded-[28px] overflow-hidden cursor-pointer transform transition-all active:scale-[0.98] shadow-2xl border border-gray-800 bg-darkCard group">
-                                    <div className="h-40 w-full bg-cover bg-center bg-gray-800" style={{ backgroundImage: tour.imageUrl ? `url(${tour.imageUrl})` : 'none' }}></div>
+                                    <div className="h-40 w-full bg-cover bg-center bg-gray-800" style={cardStyle}></div>
                                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent"></div>
                                     <div className="absolute bottom-0 left-0 w-full p-5">
                                         <h2 className="text-xl font-bold text-white mb-1">{tour.name}</h2>
@@ -234,7 +237,8 @@
                                         </div>
                                     </div>
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
 
@@ -480,6 +484,9 @@
                 const mediaYt = sheetMode === 'info' && currentStation ? getYouTubeId(currentStation.mediaUrl) : null;
                 const isMp4 = sheetMode === 'info' && currentStation && currentStation.mediaUrl && currentStation.mediaUrl.toLowerCase().endsWith('.mp4');
 
+                const mainStyle = { paddingTop: '27vh' };
+                const spacerStyle = { height: getSpacerHeight() };
+
                 return (
                     <div className="min-h-screen bg-black">
                         <header className="fixed top-0 left-0 w-full h-[25vh] z-50 overflow-hidden bg-gray-900 shadow-lg">
@@ -505,7 +512,7 @@
 
                         {tourStarted && <div className="fade-mask"></div>}
 
-                        <main className="relative z-10 px-4" style={{ paddingTop: '27vh' }}>
+                        <main className="relative z-10 px-4" style={mainStyle}>
                             {!tourStarted ? (
                                 /* Anreise: Höhe begrenzt & Scroll deaktiviert */
                                 <div className="max-w-md mx-auto pt-6 text-center relative z-50 h-[70vh] overflow-hidden">
@@ -575,7 +582,7 @@
                                             </div>
                                         );
                                     })}
-                                    <div className="w-full transition-all duration-300" style={{ height: getSpacerHeight() }}></div>
+                                    <div className="w-full transition-all duration-300" style={spacerStyle}></div>
                                 </div>
                             )}
                         </main>
