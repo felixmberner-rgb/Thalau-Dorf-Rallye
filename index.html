@@ -477,18 +477,7 @@
                     return sheetExpanded ? '75vh' : '40vh'; 
                 };
                 
-                const getProgressivePath = () => {
-                    if (!activeTour?.path || activeTour.path.length === 0 || !currentStation) return [];
-                    let minIndex = activeTour.path.length - 1;
-                    let minDist = Infinity;
-                    activeTour.path.forEach((pt, idx) => {
-                        const d = getDistance(pt.lat, pt.lng, currentStation.lat, currentStation.lng);
-                        if (d < minDist) { minDist = d; minIndex = idx; }
-                    });
-                    return activeTour.path.slice(0, minIndex + 1);
-                };
-
-                const currentPathChunk = getProgressivePath();
+                const currentPathChunk = currentStation?.path || [];
                 const mediaYt = sheetMode === 'info' && currentStation ? getYouTubeId(currentStation.mediaUrl) : null;
                 const isMp4 = sheetMode === 'info' && currentStation && currentStation.mediaUrl && currentStation.mediaUrl.toLowerCase().endsWith('.mp4');
 
@@ -821,7 +810,7 @@
                                             <p className="text-gray-400 mb-4 text-sm">Folge der Karte zurück zu deinem Ausgangspunkt.</p>
                                             
                                             <div className={`w-full bg-gray-800 rounded-2xl transition-all duration-300 relative flex-1 min-h-[300px] mb-4`}>
-                                                <MiniMap targetLat={activeTour?.parkingLat} targetLng={activeTour?.parkingLng} userLoc={userLoc} tourPath={[]} expanded={true} />
+                                                <MiniMap targetLat={activeTour?.parkingLat} targetLng={activeTour?.parkingLng} userLoc={userLoc} tourPath={activeTour?.returnPath || []} expanded={true} />
                                             </div>
                                             
                                             {distanceToStart !== null && distanceToStart < 30 ? (
@@ -998,8 +987,9 @@
                 const activeTour = tours.find(t => t.id === activeTourId);
                 const tourStations = allStations.filter(s => s.tourId === activeTourId);
                 const [mode, setMode] = React.useState('station'); 
-                const [tourPath, setTourPath] = React.useState(activeTour?.path || []);
+                const [tourPath, setTourPath] = React.useState([]);
                 const [showForm, setShowForm] = React.useState(false);
+                const [segmentId, setSegmentId] = React.useState('');
                 
                 const [editingId, setEditingId] = React.useState(null);
                 
@@ -1016,6 +1006,25 @@
                 const polylineRef = React.useRef(null);
                 const markerRef = React.useRef(null);
                 const containerRef = React.useRef(null);
+
+                const showMap = mode === 'route' || showForm;
+
+                React.useEffect(() => {
+                    if (mode === 'route' && !segmentId && tourStations.length > 0) {
+                        setSegmentId(tourStations[0].id);
+                    }
+                }, [mode, tourStations, segmentId]);
+
+                React.useEffect(() => {
+                    if (mode === 'route') {
+                        if (segmentId === 'return') {
+                            setTourPath(activeTour?.returnPath || []);
+                        } else {
+                            const st = tourStations.find(s => s.id === segmentId);
+                            setTourPath(st?.path || []);
+                        }
+                    }
+                }, [segmentId, mode, activeTour, tourStations]);
 
                 const loadStationData = (st) => {
                     setEditingId(st.id);
@@ -1068,6 +1077,12 @@
                 }, []);
 
                 React.useEffect(() => {
+                    if (mapRef.current && showMap) {
+                        setTimeout(() => mapRef.current.invalidateSize(), 100);
+                    }
+                }, [showMap]);
+
+                React.useEffect(() => {
                     if(mapRef.current && mode === 'route') {
                         if(polylineRef.current) mapRef.current.removeLayer(polylineRef.current);
                         if(tourPath.length > 0) polylineRef.current = L.polyline(tourPath, {color: 'blue', weight: 4}).addTo(mapRef.current);
@@ -1110,14 +1125,33 @@
                                 <button onClick={()=>{setMode('route'); setShowForm(false);}} className={`flex-1 py-2 text-sm font-bold rounded-lg transition ${mode === 'route' ? 'bg-green-600 text-white' : 'text-gray-400'}`}>Wegverlauf</button>
                             </div>
 
-                            <p className="text-xs text-gray-400 mb-2">{mode === 'route' ? 'Klicke auf die Karte, um den Wegpunkt für Wegpunkt einzuzeichnen.' : 'Klicke auf die Karte, um den Standort der Station zu markieren.'}</p>
-                            <div ref={containerRef} className="h-64 w-full rounded-2xl mb-4 bg-gray-200"></div>
+                            <div className={`mb-4 ${showMap ? 'block' : 'hidden'}`}>
+                                <p className="text-xs text-gray-400 mb-2">{mode === 'route' ? 'Wähle einen Abschnitt aus dem Menü und klicke auf die Karte, um den Weg zu zeichnen.' : 'Klicke auf die Karte, um den Standort der Station zu markieren.'}</p>
+                                <div ref={containerRef} className="h-64 w-full rounded-2xl bg-gray-200"></div>
+                            </div>
                             
                             {mode === 'route' && (
                                 <div className="space-y-3">
+                                    <select value={segmentId} onChange={e => setSegmentId(e.target.value)} className="w-full p-3 rounded-xl text-black font-medium mb-2">
+                                        {tourStations.map((st, idx) => (
+                                            <option key={st.id} value={st.id}>
+                                                {idx === 0 ? 'Startpunkt' : tourStations[idx-1].name} ➔ {st.name}
+                                            </option>
+                                        ))}
+                                        {activeTour?.returnToParking && (
+                                            <option value="return">Letzte Station ➔ Parkplatz (Rückweg)</option>
+                                        )}
+                                    </select>
                                     <div className="flex gap-2">
-                                        <button onClick={() => {setTourPath([]); if(polylineRef.current) mapRef.current.removeLayer(polylineRef.current); }} className="w-1/3 bg-red-900/50 text-red-500 font-bold py-3 rounded-xl">Löschen</button>
-                                        <button onClick={async () => { await updateDoc(doc(db, 'tours', activeTourId), { path: tourPath }); showToast("Route gespeichert!"); }} className="w-2/3 bg-green-600 font-bold text-white py-3 rounded-xl">Route Speichern</button>
+                                        <button onClick={() => { setTourPath([]); if(polylineRef.current) mapRef.current.removeLayer(polylineRef.current); }} className="w-1/3 bg-red-900/50 text-red-500 font-bold py-3 rounded-xl">Löschen</button>
+                                        <button onClick={async () => { 
+                                            if (segmentId === 'return') {
+                                                await updateDoc(doc(db, 'tours', activeTourId), { returnPath: tourPath });
+                                            } else {
+                                                await updateDoc(doc(db, 'stations', segmentId), { path: tourPath });
+                                            }
+                                            showToast("Abschnitt gespeichert!"); 
+                                        }} className="w-2/3 bg-green-600 font-bold text-white py-3 rounded-xl">Abschnitt Speichern</button>
                                     </div>
                                 </div>
                             )}
