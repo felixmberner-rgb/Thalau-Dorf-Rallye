@@ -995,6 +995,9 @@
                 const activeTour = tours.find(t => t.id === activeTourId);
                 const tourStations = allStations.filter(s => s.tourId === activeTourId);
                 const [mode, setMode] = React.useState('station'); 
+                const modeRef = React.useRef(mode);
+                React.useEffect(() => { modeRef.current = mode; }, [mode]);
+                
                 const [tourPath, setTourPath] = React.useState([]);
                 const [showForm, setShowForm] = React.useState(false);
                 const [segmentId, setSegmentId] = React.useState('');
@@ -1014,6 +1017,8 @@
                 const polylineRef = React.useRef(null);
                 const markerRef = React.useRef(null);
                 const containerRef = React.useRef(null);
+                const startMarkerRef = React.useRef(null);
+                const endMarkerRef = React.useRef(null);
 
                 const showMap = mode === 'route' || showForm;
 
@@ -1064,13 +1069,8 @@
                         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
                         
                         map.on('click', function(e) {
-                            if (window.currentMode === 'route') {
-                                setTourPath(prev => {
-                                    const newPath = [...prev, {lat: e.latlng.lat, lng: e.latlng.lng}];
-                                    if(polylineRef.current) map.removeLayer(polylineRef.current);
-                                    polylineRef.current = L.polyline(newPath, {color: 'blue', weight: 4}).addTo(map);
-                                    return newPath;
-                                });
+                            if (modeRef.current === 'route') {
+                                setTourPath(prev => [...(prev || []), {lat: e.latlng.lat, lng: e.latlng.lng}]);
                             } else {
                                 setStData(prev => ({...prev, lat: e.latlng.lat.toFixed(6), lng: e.latlng.lng.toFixed(6)}));
                                 if(markerRef.current) map.removeLayer(markerRef.current);
@@ -1090,14 +1090,58 @@
                     }
                 }, [showMap]);
 
+                // Zeichnen der blauen Linie
                 React.useEffect(() => {
-                    if(mapRef.current && mode === 'route') {
+                    if(mapRef.current) {
                         if(polylineRef.current) mapRef.current.removeLayer(polylineRef.current);
-                        if(tourPath.length > 0) polylineRef.current = L.polyline(tourPath, {color: 'blue', weight: 4}).addTo(mapRef.current);
+                        if(mode === 'route' && tourPath && tourPath.length > 0) {
+                            polylineRef.current = L.polyline(tourPath, {color: 'blue', weight: 4}).addTo(mapRef.current);
+                        }
                     }
                 }, [mode, tourPath]);
 
-                React.useEffect(() => { window.currentMode = mode; }, [mode]);
+                // Setzen der Start- und Zielstecknadeln
+                React.useEffect(() => {
+                    if (mapRef.current) {
+                        if (startMarkerRef.current) { mapRef.current.removeLayer(startMarkerRef.current); startMarkerRef.current = null; }
+                        if (endMarkerRef.current) { mapRef.current.removeLayer(endMarkerRef.current); endMarkerRef.current = null; }
+
+                        if (mode === 'route') {
+                            let startPos = null;
+                            let endPos = null;
+                            
+                            if (segmentId === 'return') {
+                                const lastSt = tourStations[tourStations.length - 1];
+                                if (lastSt) startPos = { lat: lastSt.lat, lng: lastSt.lng };
+                                if (activeTour?.parkingLat) endPos = { lat: activeTour.parkingLat, lng: activeTour.parkingLng };
+                            } else {
+                                const idx = tourStations.findIndex(s => s.id === segmentId);
+                                if (idx === 0) {
+                                    if (activeTour?.parkingLat) startPos = { lat: activeTour.parkingLat, lng: activeTour.parkingLng };
+                                } else if (idx > 0) {
+                                    const prevSt = tourStations[idx - 1];
+                                    startPos = { lat: prevSt.lat, lng: prevSt.lng };
+                                }
+                                
+                                const currSt = tourStations[idx];
+                                if (currSt) endPos = { lat: currSt.lat, lng: currSt.lng };
+                            }
+
+                            if (startPos && startPos.lat) {
+                                startMarkerRef.current = L.circleMarker([startPos.lat, startPos.lng], {
+                                    color: '#10B981', fillColor: '#10B981', fillOpacity: 1, radius: 8
+                                }).addTo(mapRef.current).bindTooltip("Start", { permanent: true, direction: 'top', className: 'text-xs font-bold' });
+                            }
+                            
+                            if (endPos && endPos.lat) {
+                                endMarkerRef.current = L.circleMarker([endPos.lat, endPos.lng], {
+                                    color: '#EF4444', fillColor: '#EF4444', fillOpacity: 1, radius: 8
+                                }).addTo(mapRef.current).bindTooltip("Ziel", { permanent: true, direction: 'top', className: 'text-xs font-bold' });
+                            }
+                        }
+                    }
+                }, [mode, segmentId, tourStations, activeTour]);
+
 
                 const saveStation = async (e) => {
                     e.preventDefault();
