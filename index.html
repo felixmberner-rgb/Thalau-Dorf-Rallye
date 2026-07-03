@@ -993,7 +993,9 @@
 
             const AdminStationsView = () => {
                 const activeTour = tours.find(t => t.id === activeTourId);
-                const tourStations = allStations.filter(s => s.tourId === activeTourId);
+                // FIX: useMemo verhindert, dass sich das Array bei jedem Klick neu berechnet und die gezeichnete Route löscht
+                const tourStations = React.useMemo(() => allStations.filter(s => s.tourId === activeTourId), [allStations, activeTourId]);
+                
                 const [mode, setMode] = React.useState('station'); 
                 const modeRef = React.useRef(mode);
                 React.useEffect(() => { modeRef.current = mode; }, [mode]);
