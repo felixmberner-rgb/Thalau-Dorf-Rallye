@@ -920,8 +920,10 @@
                     }
                 };
 
+                const safePaddingStyle = { paddingTop: 'calc(env(safe-area-inset-top) + 2rem)' };
+
                 return (
-                    <div className="min-h-screen bg-gray-900 p-8 text-white pb-24">
+                    <div className="min-h-screen bg-gray-900 px-8 pb-24 text-white" style={safePaddingStyle}>
                         <div className="flex justify-between items-center mb-8">
                             <h2 className="text-3xl font-bold">Touren</h2>
                             <div className="flex gap-2">
@@ -1120,8 +1122,10 @@
                     await updateDoc(doc(db, 'stations', st2.id), { order: tempOrder });
                 };
 
+                const safePaddingStyle = { paddingTop: 'calc(env(safe-area-inset-top) + 2rem)' };
+
                 return (
-                    <div className="min-h-screen bg-gray-900 p-8 text-white pb-24">
+                    <div className="min-h-screen bg-gray-900 px-8 pb-24 text-white" style={safePaddingStyle}>
                         <button onClick={() => setView('admin_tours')} className="text-iosBlue mb-4 flex items-center"><IconChevronLeft /> Zurück</button>
                         <h2 className="text-2xl font-bold mb-6">Management: {activeTour?.name}</h2>
 
@@ -1291,8 +1295,10 @@
                     }
                 };
 
+                const safePaddingStyle = { paddingTop: 'calc(env(safe-area-inset-top) + 2rem)' };
+
                 return (
-                    <div className="min-h-screen bg-gray-900 p-8 text-white pb-20">
+                    <div className="min-h-screen bg-gray-900 px-8 pb-20 text-white" style={safePaddingStyle}>
                         <button onClick={() => setView('admin_tours')} className="text-iosBlue mb-6 flex items-center"><IconChevronLeft /> Zurück</button>
                         <h2 className="text-3xl font-bold mb-8">Globale Einstellungen</h2>
                         <form onSubmit={saveSettings} className="bg-darkCard p-6 rounded-3xl space-y-4">
